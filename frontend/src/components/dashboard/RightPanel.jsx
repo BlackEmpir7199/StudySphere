@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { MarkdownRenderer } from '../../utils/markdown';
+import { MarkdownRenderer } from '../ui/MarkdownRenderer';
 
 export default function RightPanel({ channel, user }) {
   const [events, setEvents] = useState([]);

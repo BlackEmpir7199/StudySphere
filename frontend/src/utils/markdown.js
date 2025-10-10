@@ -12,15 +12,3 @@ export function formatMarkdown(text) {
     // Line breaks
     .replace(/\n/g, '<br />');
 }
-
-// Component to render formatted markdown safely
-export function MarkdownRenderer({ content }) {
-  const formattedContent = formatMarkdown(content);
-  
-  return (
-    <div 
-      className="prose prose-sm max-w-none"
-      dangerouslySetInnerHTML={{ __html: formattedContent }}
-    />
-  );
-}
