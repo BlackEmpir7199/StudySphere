@@ -90,19 +90,10 @@ export default function ChatArea({ channel, group, user }) {
     
     if (!newMessage.trim() || !socket) return;
 
-    // Check if message contains @sphere
-    if (newMessage.includes('@Sphere')) {
-      socket.emit('message:send', {
-        channelId: channel.id,
-        text: newMessage,
-        isAIMessage: true,
-      });
-    } else {
-      socket.emit('message:send', {
-        channelId: channel.id,
-        text: newMessage,
-      });
-    }
+    socket.emit('message:send', {
+      channelId: channel.id,
+      text: newMessage,
+    });
 
     setNewMessage('');
   };

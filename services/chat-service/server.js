@@ -480,7 +480,7 @@ io.on('connection', (socket) => {
   // Send message with moderation (GenAI Use Case #2: Content Moderation)
   socket.on('message:send', async (data) => {
     try {
-      const { channelId, text, isAIMessage } = data;
+      const { channelId, text } = data;
 
       if (!text || text.trim().length === 0) {
         return socket.emit('error', { message: 'Message text is required' });
@@ -519,21 +519,14 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Create message (handle isAIMessage field gracefully)
-      const messageData = {
-        channelId,
-        userId: socket.userId,
-        text,
-        isModerated: false,
-      };
-      
-      // Only add isAIMessage if the field exists in the database
-      if (isAIMessage) {
-        messageData.isAIMessage = true;
-      }
-      
+      // Create message
       const message = await prisma.message.create({
-        data: messageData,
+        data: {
+          channelId,
+          userId: socket.userId,
+          text,
+          isModerated: false,
+        },
         include: {
           user: {
             select: {
@@ -549,7 +542,7 @@ io.on('connection', (socket) => {
       io.to(`channel:${channelId}`).emit('message:received', message);
 
       // If it's an AI message, process it and send AI response
-      if (isAIMessage && text.includes('@Sphere')) {
+      if (text.includes('@Sphere')) {
         try {
           // Extract the prompt after @Sphere
           const promptMatch = text.match(/@Sphere\s+(.+)/i);
@@ -561,22 +554,13 @@ io.on('connection', (socket) => {
             const aiResponse = await generateAIResponse(prompt);
             
             // Create AI response message
-            const aiMessageData = {
-              channelId,
-              userId: socket.userId, // Keep original user as sender
-              text: aiResponse,
-              isModerated: false,
-            };
-            
-            // Add isAIMessage field if supported
-            try {
-              aiMessageData.isAIMessage = true;
-            } catch (e) {
-              // Field doesn't exist, continue without it
-            }
-            
             const aiMessage = await prisma.message.create({
-              data: aiMessageData,
+              data: {
+                channelId,
+                userId: socket.userId, // Keep original user as sender
+                text: aiResponse,
+                isModerated: false,
+              },
               include: {
                 user: {
                   select: {
@@ -594,22 +578,13 @@ io.on('connection', (socket) => {
         } catch (aiError) {
           console.error('AI response error:', aiError);
           // Send error message from AI
-          const errorMessageData = {
-            channelId,
-            userId: socket.userId,
-            text: "Sorry, I'm having trouble processing your request right now. Please try again later.",
-            isModerated: false,
-          };
-          
-          // Add isAIMessage field if supported
-          try {
-            errorMessageData.isAIMessage = true;
-          } catch (e) {
-            // Field doesn't exist, continue without it
-          }
-          
           const errorMessage = await prisma.message.create({
-            data: errorMessageData,
+            data: {
+              channelId,
+              userId: socket.userId,
+              text: "Sorry, I'm having trouble processing your request right now. Please try again later.",
+              isModerated: false,
+            },
             include: {
               user: {
                 select: {
