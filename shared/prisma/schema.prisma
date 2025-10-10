@@ -85,7 +85,6 @@ model Message {
   timestamp    DateTime @default(now())
   isModerated  Boolean  @default(false)
   moderatedReason String?
-  isAIMessage  Boolean  @default(false)
 
   // Relations
   channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
