@@ -153,14 +153,20 @@ jobs:
 
     - name: Deploy to Development
       run: |
-        # Update image tags to use commit SHA
+        # Create temporary deployment files for development
+        mkdir -p k8s-dev
+        
+        # Copy and modify deployments for development
         for file in k8s/deployments/*.yaml; do
-          sed -i "s|:latest|:${{ github.sha }}|g" $file
-          sed -i "s|namespace: production|namespace: development|g" $file
+          cat $file | sed "s|:latest|:${{ github.sha }}|g" | sed "s|namespace: production|namespace: development|g" > k8s-dev/$(basename $file)
         done
         
-        kubectl apply -f k8s/deployments/ -n development
-        kubectl apply -f k8s/services/ -n development
+        # Copy and modify services for development
+        for file in k8s/services/*.yaml; do
+          cat $file | sed "s|namespace: production|namespace: development|g" > k8s-dev/$(basename $file)-service
+        done
+        
+        kubectl apply -f k8s-dev/ -n development
         
     - name: Verify deployment
       run: |
@@ -201,14 +207,20 @@ jobs:
 
     - name: Deploy to Testing
       run: |
-        # Update namespace to testing
+        # Create temporary deployment files for testing
+        mkdir -p k8s-test
+        
+        # Copy and modify deployments for testing
         for file in k8s/deployments/*.yaml; do
-          sed -i "s|:latest|:${{ github.sha }}|g" $file
-          sed -i "s|namespace: production|namespace: testing|g" $file
+          cat $file | sed "s|:latest|:${{ github.sha }}|g" | sed "s|namespace: production|namespace: testing|g" > k8s-test/$(basename $file)
         done
         
-        kubectl apply -f k8s/deployments/ -n testing
-        kubectl apply -f k8s/services/ -n testing
+        # Copy and modify services for testing
+        for file in k8s/services/*.yaml; do
+          cat $file | sed "s|namespace: production|namespace: testing|g" > k8s-test/$(basename $file)
+        done
+        
+        kubectl apply -f k8s-test/ -n testing
 
     - name: Run integration tests
       run: |
@@ -251,20 +263,22 @@ jobs:
           -n production \
           --dry-run=client -o yaml | kubectl apply -f -
 
-    - name: Deploy Redis
-      run: |
-        kubectl apply -f k8s/deployments/redis-deployment.yaml -n production
-    
     - name: Deploy to Production
       run: |
-        # Use commit SHA for production
+        # Create temporary deployment files for production
+        mkdir -p k8s-prod
+        
+        # Copy and modify deployments for production (use commit SHA)
         for file in k8s/deployments/*.yaml; do
-          sed -i "s|:latest|:${{ github.sha }}|g" $file
+          cat $file | sed "s|:latest|:${{ github.sha }}|g" > k8s-prod/$(basename $file)
         done
         
-        kubectl apply -f k8s/deployments/ -n production
-        kubectl apply -f k8s/services/ -n production
-        kubectl apply -f k8s/ingress.yaml -n production
+        # Copy services and ingress as-is
+        cp k8s/services/*.yaml k8s-prod/
+        cp k8s/ingress.yaml k8s-prod/
+        
+        # Apply to production
+        kubectl apply -f k8s-prod/ -n production
 
     - name: Verify production deployment
       run: |
