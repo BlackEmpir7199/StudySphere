@@ -11,6 +11,8 @@ yarn.lock
 .env.local
 .env.*.local
 
+env.txt
+
 # Build outputs
 dist/
 build/

@@ -57,6 +57,15 @@ resource "azurerm_postgresql_flexible_server_firewall_rule" "azure_services" {
   end_ip_address   = "0.0.0.0"
 }
 
+# PostgreSQL Firewall Rule - Allow all IPs (for development)
+# In production, restrict this to specific IPs
+resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_all" {
+  name             = "AllowAll"
+  server_id        = azurerm_postgresql_flexible_server.main.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "255.255.255.255"
+}
+
 # PostgreSQL Database
 resource "azurerm_postgresql_flexible_server_database" "studysphere" {
   name      = "studysphere"

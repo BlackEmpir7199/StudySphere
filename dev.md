@@ -1235,4 +1235,199 @@ kubectl exec -n production deployment/auth-service -- npx prisma studio --schema
 ---
 
 **DEPLOYMENT COMPLETE! ✅**  
-**Access your app at: http://4.230.64.247**
+**Access your app at: http://20.249.205.162** (NEW - Ingress)
+
+---
+
+## CI/CD Pipeline Setup
+
+**Status:** ✅ Ready to deploy
+
+### GitHub Actions Workflows
+
+**1. CI/CD Pipeline** (`.github/workflows/ci-cd.yml`)
+- **Triggers:** Push to main/develop, Pull requests, Manual
+- **Jobs:**
+  1. Build and Test (install deps, build frontend)
+  2. Build Images (Docker build & push to ACR)
+  3. Deploy Dev (automatic)
+  4. Deploy Test (requires approval)
+  5. Deploy Prod (requires approval + Ingress)
+
+**2. Terraform Infrastructure** (`.github/workflows/terraform.yml`)
+- **Triggers:** Push to main (infra changes), Manual
+- **Jobs:**
+  1. Terraform Plan (shows changes)
+  2. Terraform Apply (creates resources, requires approval)
+  3. Terraform Destroy (destroys resources, requires approval)
+
+### Required GitHub Secrets
+
+| Secret | Example Value |
+|--------|--------------|
+| AZURE_CREDENTIALS | JSON from service principal |
+| ARM_CLIENT_ID | cee8a6c6-... |
+| ARM_CLIENT_SECRET | Uj28Q~... |
+| ARM_SUBSCRIPTION_ID | ca898a6e-... |
+| ARM_TENANT_ID | 412c0c54-... |
+| ACR_NAME | studysphereacr |
+| ACR_LOGIN_SERVER | studysphereacr.azurecr.io |
+| AKS_CLUSTER_NAME | studysphere-aks |
+| AKS_RESOURCE_GROUP | studysphere-rg |
+| DATABASE_URL | postgresql://... |
+| DB_ADMIN_PASSWORD | StudySphere@2024! |
+| JWT_SECRET | prod-secret-... |
+| GEMINI_API_KEY | AIzaSy... |
+| GEMINI_MODEL | gemini-2.0-flash-exp |
+| AZURE_MODERATOR_KEY | EDw9... |
+| AZURE_MODERATOR_ENDPOINT | https://... |
+
+**Setup Guide:** See `GITHUB_SETUP.md` for complete instructions
+
+---
+
+## Terraform Infrastructure
+
+**Status:** ✅ Matches actual deployment
+
+### Resources Managed
+
+**infra/main.tf includes:**
+1. Resource Group (studysphere-rg)
+2. PostgreSQL Flexible Server
+   - Version: 15
+   - SKU: Standard_B1ms
+   - Storage: 32GB
+   - Firewall: Azure services + All IPs
+3. PostgreSQL Database (studysphere)
+4. Azure Container Registry
+   - SKU: Standard
+   - Admin enabled
+5. Azure Kubernetes Service
+   - Node count: 2
+   - VM size: Standard_B2s
+   - Network: Azure CNI
+6. Role Assignment (AKS → ACR pull)
+7. Log Analytics Workspace
+
+### Terraform Commands
+
+```bash
+cd infra
+
+# Initialize
+terraform init
+
+# Format
+terraform fmt
+
+# Validate
+terraform validate
+
+# Plan (see what will be created)
+terraform plan
+
+# Apply (create resources)
+terraform apply
+
+# Destroy (delete resources)
+terraform destroy
+```
+
+### Terraform State
+
+**Current:** Local state (simple)  
+**Production:** Consider Azure Storage backend for team collaboration
+
+---
+
+## Deployment Architecture
+
+### Current Setup (Manual)
+
+```
+Developer
+    ↓
+  Azure CLI
+    ↓
+  ┌─────────────────┐
+  │  Azure Portal   │
+  └────────┬────────┘
+           ↓
+  ┌─────────────────┐
+  │  studysphere-rg │
+  └────────┬────────┘
+           ↓
+  ┌─────────────────┐
+  │  PostgreSQL     │ ← Migrations Applied
+  │  ACR            │ ← 5 Images (v2-v4)
+  │  AKS            │ ← 11 Pods Running
+  │  Ingress        │ ← 20.249.205.162
+  └─────────────────┘
+```
+
+### Future Setup (CI/CD)
+
+```
+Developer
+    ↓
+  git push
+    ↓
+  ┌─────────────────┐
+  │ GitHub Actions  │
+  └────────┬────────┘
+           ↓
+  ┌─────────────────┐
+  │  Build & Test   │ ← Install, Build
+  └────────┬────────┘
+           ↓
+  ┌─────────────────┐
+  │  Build Images   │ ← Docker build & push
+  └────────┬────────┘
+           ↓
+  ┌─────────────────┐
+  │  Deploy Dev     │ ← Automatic
+  └────────┬────────┘
+           ↓
+  ┌─────────────────┐
+  │  Deploy Test    │ ← Manual Approval
+  └────────┬────────┘
+           ↓
+  ┌─────────────────┐
+  │  Deploy Prod    │ ← Manual Approval + Ingress
+  └─────────────────┘
+```
+
+---
+
+## Documentation Files Created
+
+**Setup & Deployment:**
+- `GITHUB_SETUP.md` - Complete CI/CD setup guide
+- `DEPLOYMENT_CHECKLIST.md` - Full verification checklist
+- `DEPLOYMENT_COMPLETE.md` - Initial deployment summary
+- `NEW_IP_INGRESS.md` - Ingress explanation
+- `FINAL_STATUS.md` - Current status (cookie fix)
+
+**Infrastructure:**
+- `infra/main.tf` - Terraform resources
+- `infra/variables.tf` - Terraform variables
+- `infra/outputs.tf` - Terraform outputs
+- `infra/terraform.tfvars` - Your configuration
+
+**CI/CD:**
+- `.github/workflows/ci-cd.yml` - Application pipeline
+- `.github/workflows/terraform.yml` - Infrastructure pipeline
+- `scripts/setup-github-secrets.sh` - Helper script
+
+**Application:**
+- `README.md` - Project overview
+- `dev.md` - This complete reference
+- `docs/architecture.md` - System architecture
+- `docs/GenAI-use-cases.md` - AI integration
+- `docs/presentation.md` - Presentation guide
+
+---
+
+**EVERYTHING IS READY FOR CI/CD! ✅**  
+**Follow GITHUB_SETUP.md to activate automatic deployments** 🚀

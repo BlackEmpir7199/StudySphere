@@ -145,12 +145,10 @@ jobs:
         kubectl create secret generic azure-secrets \
           --from-literal=DATABASE_URL='${{ secrets.DATABASE_URL }}' \
           --from-literal=JWT_SECRET='${{ secrets.JWT_SECRET }}' \
-          --from-literal=AZURE_OPENAI_KEY='${{ secrets.AZURE_OPENAI_KEY }}' \
-          --from-literal=AZURE_OPENAI_ENDPOINT='${{ secrets.AZURE_OPENAI_ENDPOINT }}' \
+          --from-literal=GEMINI_API_KEY='${{ secrets.GEMINI_API_KEY }}' \
+          --from-literal=GEMINI_MODEL='${{ secrets.GEMINI_MODEL }}' \
           --from-literal=AZURE_MODERATOR_KEY='${{ secrets.AZURE_MODERATOR_KEY }}' \
           --from-literal=AZURE_MODERATOR_ENDPOINT='${{ secrets.AZURE_MODERATOR_ENDPOINT }}' \
-          --from-literal=REDIS_URL='redis://redis:6379' \
-          --from-literal=CORS_ORIGIN='https://dev.studysphere.example.com' \
           -n development \
           --dry-run=client -o yaml | kubectl apply -f -
 
@@ -247,15 +245,17 @@ jobs:
         kubectl create secret generic azure-secrets \
           --from-literal=DATABASE_URL='${{ secrets.DATABASE_URL }}' \
           --from-literal=JWT_SECRET='${{ secrets.JWT_SECRET }}' \
-          --from-literal=AZURE_OPENAI_KEY='${{ secrets.AZURE_OPENAI_KEY }}' \
-          --from-literal=AZURE_OPENAI_ENDPOINT='${{ secrets.AZURE_OPENAI_ENDPOINT }}' \
+          --from-literal=GEMINI_API_KEY='${{ secrets.GEMINI_API_KEY }}' \
+          --from-literal=GEMINI_MODEL='gemini-2.0-flash-exp' \
           --from-literal=AZURE_MODERATOR_KEY='${{ secrets.AZURE_MODERATOR_KEY }}' \
           --from-literal=AZURE_MODERATOR_ENDPOINT='${{ secrets.AZURE_MODERATOR_ENDPOINT }}' \
-          --from-literal=REDIS_URL='redis://redis:6379' \
-          --from-literal=CORS_ORIGIN='https://studysphere.example.com' \
           -n production \
           --dry-run=client -o yaml | kubectl apply -f -
 
+    - name: Deploy Redis
+      run: |
+        kubectl apply -f k8s/deployments/redis-deployment.yaml -n production
+    
     - name: Deploy to Production
       run: |
         # Use commit SHA for production
@@ -266,7 +266,6 @@ jobs:
         kubectl apply -f k8s/deployments/ -n production
         kubectl apply -f k8s/services/ -n production
         kubectl apply -f k8s/ingress.yaml -n production
-        kubectl apply -f k8s/hpa.yaml -n production
 
     - name: Verify production deployment
       run: |
