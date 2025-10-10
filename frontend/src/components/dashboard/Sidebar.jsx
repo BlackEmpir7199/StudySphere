@@ -196,7 +196,7 @@ export default function Sidebar({
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
-            <BrowseGroupsDialog onJoin={onCreateGroup} />
+            <BrowseGroupsDialog onJoin={onJoinGroup} />
           </DialogContent>
         </Dialog>
       </div>

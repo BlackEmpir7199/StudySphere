@@ -30,9 +30,9 @@ export default function BrowseGroups({ onClose, onJoin }) {
       await groupsAPI.join(groupId);
       // Refresh groups list
       await loadGroups();
-      // Notify parent to refresh
+      // Notify parent to refresh groups in sidebar
       if (onJoin) {
-        onJoin();
+        onJoin(groupId);
       }
     } catch (error) {
       console.error('Failed to join group:', error);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, FileText, Plus, ExternalLink, Sparkles } from 'lucide-react';
+import { Calendar, FileText, Plus, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
 import { chatAPIs } from '../../lib/api';
 import { getSocket } from '../../lib/socket';
 import { Button } from '../ui/button';
@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { MarkdownRenderer } from '../../utils/markdown';
 
 export default function RightPanel({ channel, user }) {
   const [events, setEvents] = useState([]);
@@ -25,6 +26,7 @@ export default function RightPanel({ channel, user }) {
   const [resourceTitle, setResourceTitle] = useState('');
   const [resourceUrl, setResourceUrl] = useState('');
   const [resourceContent, setResourceContent] = useState('');
+  const [isAddingResource, setIsAddingResource] = useState(false);
 
   useEffect(() => {
     if (channel) {
@@ -50,10 +52,17 @@ export default function RightPanel({ channel, user }) {
       );
     });
 
+    socket.on('resource:summarized', (updatedResource) => {
+      setResources((prev) =>
+        prev.map((r) => (r.id === updatedResource.id ? updatedResource : r))
+      );
+    });
+
     return () => {
       socket.off('event:created');
       socket.off('resource:created');
       socket.off('resource:updated');
+      socket.off('resource:summarized');
     };
   }, [socket]);
 
@@ -96,6 +105,7 @@ export default function RightPanel({ channel, user }) {
 
   const handleCreateResource = async (e) => {
     e.preventDefault();
+    setIsAddingResource(true);
     try {
       const formData = new FormData();
       formData.append('title', resourceTitle);
@@ -108,12 +118,18 @@ export default function RightPanel({ channel, user }) {
         await chatAPIs.summarizeResource(response.data.resource.id, resourceContent);
       }
 
+      // Refresh resources to show the new one
+      await loadResources();
+
       setResourceTitle('');
       setResourceUrl('');
       setResourceContent('');
       setShowResourceDialog(false);
     } catch (error) {
       console.error('Failed to create resource:', error);
+      alert(error.response?.data?.error || 'Failed to create resource');
+    } finally {
+      setIsAddingResource(false);
     }
   };
 
@@ -290,7 +306,16 @@ export default function RightPanel({ channel, user }) {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit">Add Resource</Button>
+                  <Button type="submit" disabled={isAddingResource}>
+                    {isAddingResource ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Add Resource'
+                    )}
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -325,8 +350,8 @@ export default function RightPanel({ channel, user }) {
                           <Sparkles className="h-3 w-3" />
                           AI Summary
                         </div>
-                        <div className="whitespace-pre-wrap text-muted-foreground">
-                          {resource.summary}
+                        <div className="text-muted-foreground">
+                          <MarkdownRenderer content={resource.summary} />
                         </div>
                       </div>
                     )}
