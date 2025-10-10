@@ -415,7 +415,18 @@ app.delete('/api/resources/:id', authenticate, async (req, res) => {
 // Socket.io authentication middleware
 io.use(async (socket, next) => {
   try {
-    const token = socket.handshake.auth.token;
+    // Get token from cookies (sent automatically by browser)
+    const cookies = socket.handshake.headers.cookie;
+    
+    if (!cookies) {
+      return next(new Error('Authentication required'));
+    }
+    
+    // Parse cookies
+    const token = cookies
+      .split('; ')
+      .find(row => row.startsWith('token='))
+      ?.split('=')[1];
     
     if (!token) {
       return next(new Error('Authentication required'));
@@ -427,6 +438,7 @@ io.use(async (socket, next) => {
     
     next();
   } catch (error) {
+    console.error('Socket auth error:', error);
     next(new Error('Invalid token'));
   }
 });

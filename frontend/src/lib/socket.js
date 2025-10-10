@@ -1,25 +1,31 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_CHAT_SERVICE_URL || 'http://localhost:5004';
+// Use current origin for Socket.io (nginx proxies /socket.io/ to chat-service)
+const SOCKET_URL = window.location.origin;
 
 let socket = null;
 
-export const initSocket = (token) => {
+export const initSocket = () => {
   if (socket) {
     socket.disconnect();
   }
 
   socket = io(SOCKET_URL, {
-    auth: { token },
-    withCredentials: true,
+    withCredentials: true, // This sends cookies automatically
+    transports: ['websocket', 'polling'],
+    path: '/socket.io/',
   });
 
   socket.on('connect', () => {
-    console.log('Socket connected');
+    console.log('✅ Socket connected');
   });
 
   socket.on('disconnect', () => {
-    console.log('Socket disconnected');
+    console.log('❌ Socket disconnected');
+  });
+
+  socket.on('connect_error', (error) => {
+    console.error('Socket connection error:', error.message);
   });
 
   socket.on('error', (error) => {

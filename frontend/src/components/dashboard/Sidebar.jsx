@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import BrowseGroupsDialog from './BrowseGroups';
 
 export default function Sidebar({
   groups,
@@ -143,10 +144,17 @@ export default function Sidebar({
 
       {/* Discover groups button */}
       <div className="p-4 border-t">
-        <Button variant="outline" className="w-full" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Browse Groups
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="w-full" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Browse Groups
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
+            <BrowseGroupsDialog onJoin={onCreateGroup} />
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

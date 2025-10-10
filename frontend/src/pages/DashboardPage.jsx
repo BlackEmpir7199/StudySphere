@@ -19,15 +19,8 @@ export default function DashboardPage({ user, onLogout }) {
   useEffect(() => {
     loadGroups();
     
-    // Initialize socket connection
-    const token = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('token='))
-      ?.split('=')[1];
-    
-    if (token) {
-      initSocket(token);
-    }
+    // Initialize socket connection (uses cookies automatically)
+    initSocket();
 
     return () => {
       disconnectSocket();
@@ -36,7 +29,8 @@ export default function DashboardPage({ user, onLogout }) {
 
   const loadGroups = async () => {
     try {
-      const response = await groupsAPI.getAll();
+      // Load only groups the user is a member of
+      const response = await groupsAPI.getMyGroups();
       setGroups(response.data.groups);
       
       // Auto-select first group if available
