@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { authAPI } from './lib/api';
+import { ThemeProvider } from './contexts/ThemeContext';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfileQuizPage from './pages/ProfileQuizPage';
@@ -47,37 +48,39 @@ function App() {
   }
 
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={!user ? <LoginPage onLogin={handleLogin} /> : <Navigate to="/dashboard" />}
-      />
-      <Route
-        path="/register"
-        element={!user ? <RegisterPage onLogin={handleLogin} /> : <Navigate to="/profile-quiz" />}
-      />
-      <Route
-        path="/profile-quiz"
-        element={
-          user ? (
-            <ProfileQuizPage user={user} onComplete={() => window.location.href = '/dashboard'} />
-          ) : (
-            <Navigate to="/login" />
-          )
-        }
-      />
-      <Route
-        path="/dashboard/*"
-        element={
-          user ? (
-            <DashboardPage user={user} onLogout={handleLogout} />
-          ) : (
-            <Navigate to="/login" />
-          )
-        }
-      />
-      <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
-    </Routes>
+    <ThemeProvider>
+      <Routes>
+        <Route
+          path="/login"
+          element={!user ? <LoginPage onLogin={handleLogin} /> : <Navigate to="/dashboard" />}
+        />
+        <Route
+          path="/register"
+          element={!user ? <RegisterPage onLogin={handleLogin} /> : <Navigate to="/profile-quiz" />}
+        />
+        <Route
+          path="/profile-quiz"
+          element={
+            user ? (
+              <ProfileQuizPage user={user} onComplete={() => window.location.href = '/dashboard'} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/dashboard/*"
+          element={
+            user ? (
+              <DashboardPage user={user} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
+      </Routes>
+    </ThemeProvider>
   );
 }
 

@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { DarkModeToggle } from '../ui/DarkModeToggle';
 import BrowseGroupsDialog from './BrowseGroups';
 import UserProfile from './UserProfile';
 import GroupSettings from './GroupSettings';
@@ -54,6 +55,7 @@ export default function Sidebar({
             </p>
           </div>
           <div className="flex gap-1">
+            <DarkModeToggle />
             <Button 
               variant="ghost" 
               size="icon" 

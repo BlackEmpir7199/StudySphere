@@ -93,6 +93,10 @@ export default function RightPanel({ channel, user }) {
         gmeetLink: eventLink,
         scheduledDate: new Date(eventDate).toISOString(),
       });
+      
+      // Refresh events to show the new one
+      await loadEvents();
+      
       setEventTitle('');
       setEventDescription('');
       setEventLink('');
@@ -100,6 +104,7 @@ export default function RightPanel({ channel, user }) {
       setShowEventDialog(false);
     } catch (error) {
       console.error('Failed to create event:', error);
+      alert(error.response?.data?.error || 'Failed to create event');
     }
   };
 

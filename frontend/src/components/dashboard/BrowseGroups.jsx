@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react';
 import { groupsAPI } from '../../lib/api';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
-import { Users, Check, X } from 'lucide-react';
+import { Input } from '../ui/input';
+import { Users, Check, X, Search, Filter } from 'lucide-react';
 
 export default function BrowseGroups({ onClose, onJoin }) {
   const [groups, setGroups] = useState([]);
+  const [filteredGroups, setFilteredGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('newest'); // newest, oldest, members
 
   useEffect(() => {
     loadGroups();
@@ -17,12 +21,43 @@ export default function BrowseGroups({ onClose, onJoin }) {
     try {
       const response = await groupsAPI.browseGroups();
       setGroups(response.data.groups);
+      setFilteredGroups(response.data.groups);
     } catch (error) {
       console.error('Failed to browse groups:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Filter and sort groups
+  useEffect(() => {
+    let filtered = [...groups];
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(group =>
+        group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        group.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        group.owner.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Sort groups
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        case 'oldest':
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        case 'members':
+          return b._count.members - a._count.members;
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredGroups(filtered);
+  }, [groups, searchTerm, sortBy]);
 
   const handleJoin = async (groupId) => {
     setJoiningId(groupId);
@@ -36,7 +71,16 @@ export default function BrowseGroups({ onClose, onJoin }) {
       }
     } catch (error) {
       console.error('Failed to join group:', error);
-      alert(error.response?.data?.error || 'Failed to join group');
+      // Handle 409 Conflict (already a member) gracefully
+      if (error.response?.status === 409) {
+        // User is already a member, just refresh the UI
+        await loadGroups();
+        if (onJoin) {
+          onJoin(groupId);
+        }
+      } else {
+        alert(error.response?.data?.error || 'Failed to join group');
+      }
     } finally {
       setJoiningId(null);
     }
@@ -66,15 +110,61 @@ export default function BrowseGroups({ onClose, onJoin }) {
         )}
       </div>
 
-      {groups.length === 0 ? (
+      {/* Search and Filter Controls */}
+      <div className="mb-6 space-y-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Search groups by name, description, or owner..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Button
+            variant={sortBy === 'newest' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSortBy('newest')}
+          >
+            Newest
+          </Button>
+          <Button
+            variant={sortBy === 'oldest' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSortBy('oldest')}
+          >
+            Oldest
+          </Button>
+          <Button
+            variant={sortBy === 'members' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSortBy('members')}
+          >
+            Most Members
+          </Button>
+        </div>
+      </div>
+
+      {filteredGroups.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Users className="h-16 w-16 mx-auto mb-4 opacity-20" />
-          <p className="text-lg">No groups available yet</p>
-          <p className="text-sm mt-2">Be the first to create one!</p>
+          {searchTerm ? (
+            <>
+              <p className="text-lg">No groups found</p>
+              <p className="text-sm mt-2">Try adjusting your search terms</p>
+            </>
+          ) : (
+            <>
+              <p className="text-lg">No groups available yet</p>
+              <p className="text-sm mt-2">Be the first to create one!</p>
+            </>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {groups.map((group) => (
+          {filteredGroups.map((group) => (
             <Card key={group.id} className={group.isMember ? 'border-primary/50' : ''}>
               <CardHeader>
                 <div className="flex items-start justify-between">
