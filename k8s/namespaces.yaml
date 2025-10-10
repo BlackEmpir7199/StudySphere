@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: development
+  labels:
+    environment: development
+    project: studysphere
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: testing
+  labels:
+    environment: testing
+    project: studysphere
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    environment: production
+    project: studysphere
+

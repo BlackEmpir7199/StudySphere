@@ -1,0 +1,39 @@
+{
+  "name": "study-group-app",
+  "version": "1.0.0",
+  "description": "Full-stack study group creator app with microservices architecture",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "services/auth-service",
+    "services/user-service",
+    "services/group-service",
+    "services/chat-service",
+    "frontend"
+  ],
+  "scripts": {
+    "install-all": "npm install && cd shared && npm install && cd ../services/auth-service && npm install && cd ../user-service && npm install && cd ../group-service && npm install && cd ../chat-service && npm install && cd ../../frontend && npm install",
+    "prisma:generate": "cd shared && npx prisma generate",
+    "prisma:migrate": "cd shared && npx prisma migrate dev",
+    "dev:auth": "cd services/auth-service && npm run dev",
+    "dev:user": "cd services/user-service && npm run dev",
+    "dev:group": "cd services/group-service && npm run dev",
+    "dev:chat": "cd services/chat-service && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "test": "npm run test --workspaces"
+  },
+  "keywords": [
+    "study-group",
+    "microservices",
+    "azure",
+    "genai",
+    "kubernetes"
+  ],
+  "author": "StudySphere Team",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^6.17.0"
+  }
+}

@@ -1,0 +1,74 @@
+# Default values for StudySphere Helm chart
+
+replicaCount: 2
+
+image:
+  repository: studysphereacr.azurecr.io
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: studysphere.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: studysphere-tls
+      hosts:
+        - studysphere.example.com
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Environment-specific configurations
+env:
+  - name: NODE_ENV
+    value: production
+
+# Secrets (should be created separately)
+secrets:
+  azureSecrets:
+    enabled: true
+    name: azure-secrets
+

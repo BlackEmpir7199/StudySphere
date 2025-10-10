@@ -1,0 +1,131 @@
+// Prisma schema for StudySphere database
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  interests Json[]   @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  ownedGroups  Group[]    @relation("GroupOwner")
+  memberships  GroupMember[]
+  messages     Message[]
+  events       Event[]
+  resources    Resource[]
+
+  @@map("users")
+}
+
+model Group {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  owner    User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members  GroupMember[]
+  channels Channel[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id       String   @id @default(uuid())
+  groupId  String
+  userId   String
+  role     String   @default("member") // member, moderator, admin
+  joinedAt DateTime @default(now())
+
+  // Relations
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
+
+model Channel {
+  id        String   @id @default(uuid())
+  groupId   String
+  name      String
+  type      String   @default("text") // text, voice
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  group     Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  events    Event[]
+  resources Resource[]
+
+  @@map("channels")
+}
+
+model Message {
+  id           String   @id @default(uuid())
+  channelId    String
+  userId       String
+  text         String   @db.Text
+  timestamp    DateTime @default(now())
+  isModerated  Boolean  @default(false)
+  moderatedReason String?
+
+  // Relations
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+model Event {
+  id            String   @id @default(uuid())
+  channelId     String
+  title         String
+  description   String?  @db.Text
+  gmeetLink     String?
+  scheduledDate DateTime
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@map("events")
+}
+
+model Resource {
+  id           String   @id @default(uuid())
+  channelId    String
+  title        String
+  url          String?
+  fileType     String?
+  summary      String?  @db.Text
+  uploadedById String
+  timestamp    DateTime @default(now())
+  isModerated  Boolean  @default(false)
+  moderatedReason String?
+
+  // Relations
+  channel    Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  uploadedBy User    @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@map("resources")
+}
+

@@ -1,0 +1,30 @@
+apiVersion: v2
+name: studysphere
+description: A Helm chart for StudySphere study group platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+keywords:
+  - studysphere
+  - education
+  - collaboration
+  - microservices
+
+maintainers:
+  - name: StudySphere Team
+    email: team@studysphere.edu
+
+# This is a stub Helm chart structure
+# For full Helm deployment, create templates/ directory with:
+# - deployment.yaml (templated versions of k8s/deployments/*)
+# - service.yaml (templated versions of k8s/services/*)
+# - ingress.yaml (templated)
+# - hpa.yaml (templated)
+# - secrets.yaml
+# - configmap.yaml
+# - values.yaml (configuration values)
+# - _helpers.tpl (template helpers)
+
+# To use: helm install studysphere ./helm -n production
+

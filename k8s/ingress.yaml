@@ -1,0 +1,70 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: studysphere-ingress
+  namespace: production
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  tls:
+  - hosts:
+    - studysphere.example.com
+    secretName: studysphere-tls
+  rules:
+  - host: studysphere.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80
+      - path: /api/auth(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 5001
+      - path: /api/profile(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 5002
+      - path: /api/groups(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: group-service
+            port:
+              number: 5003
+      - path: /api/channels(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 5004
+      - path: /api/events(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 5004
+      - path: /api/resources(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 5004
+
