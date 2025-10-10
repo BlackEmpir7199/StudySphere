@@ -8,13 +8,18 @@ import RightPanel from '../components/dashboard/RightPanel';
 import { Button } from '../components/ui/button';
 import { Menu, X } from 'lucide-react';
 
-export default function DashboardPage({ user, onLogout }) {
+export default function DashboardPage({ user: initialUser, onLogout }) {
+  const [user, setUser] = useState(initialUser);
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+
+  const handleUserUpdate = (updatedUser) => {
+    setUser(updatedUser);
+  };
 
   useEffect(() => {
     loadGroups();
@@ -119,6 +124,7 @@ export default function DashboardPage({ user, onLogout }) {
           onJoinGroup={handleJoinGroup}
           user={user}
           onLogout={onLogout}
+          onUserUpdate={handleUserUpdate}
         />
       </div>
 

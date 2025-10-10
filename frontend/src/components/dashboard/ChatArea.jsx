@@ -1,21 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, Hash } from 'lucide-react';
-import { chatAPIs } from '../../lib/api';
+import { chatAPIs, groupsAPI } from '../../lib/api';
 import { getSocket } from '../../lib/socket';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+import MentionInput from './MentionInput';
 
 export default function ChatArea({ channel, group, user }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [moderationWarning, setModerationWarning] = useState(null);
+  const [groupMembers, setGroupMembers] = useState([]);
   const messagesEndRef = useRef(null);
   const socket = getSocket();
 
   useEffect(() => {
     if (channel) {
       loadMessages();
+      loadGroupMembers();
       joinChannel();
     }
 
@@ -25,6 +27,17 @@ export default function ChatArea({ channel, group, user }) {
       }
     };
   }, [channel]);
+
+  const loadGroupMembers = async () => {
+    try {
+      if (group && group.id) {
+        const response = await groupsAPI.getById(group.id);
+        setGroupMembers(response.data.group.members || []);
+      }
+    } catch (error) {
+      console.error('Failed to load group members:', error);
+    }
+  };
 
   useEffect(() => {
     if (!socket) return;
@@ -95,6 +108,27 @@ export default function ChatArea({ channel, group, user }) {
     }
   };
 
+  const renderMessageText = (text) => {
+    // Highlight @mentions
+    const mentionRegex = /@(\w+(?:\s+\w+)*)/g;
+    const parts = text.split(mentionRegex);
+
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        // This is a mention
+        return (
+          <span
+            key={index}
+            className="bg-primary/20 text-primary px-1 rounded font-medium"
+          >
+            @{part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Channel header */}
@@ -123,12 +157,19 @@ export default function ChatArea({ channel, group, user }) {
             <div key={message.id} className="flex gap-3 hover:bg-accent/50 -mx-2 px-2 py-1 rounded">
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                  {message.user.email[0].toUpperCase()}
+                  {(message.user.name || message.user.email)[0].toUpperCase()}
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-medium text-sm">{message.user.email}</span>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="font-medium text-sm">
+                    {message.user.name || message.user.email}
+                  </span>
+                  {message.user.name && (
+                    <span className="text-xs text-muted-foreground">
+                      {message.user.email}
+                    </span>
+                  )}
                   <span className="text-xs text-muted-foreground">
                     {formatTime(message.timestamp)}
                   </span>
@@ -139,7 +180,7 @@ export default function ChatArea({ channel, group, user }) {
                   )}
                 </div>
                 <p className={`text-sm mt-0.5 break-words ${message.isModerated ? 'text-muted-foreground italic' : ''}`}>
-                  {message.text}
+                  {message.isModerated ? message.text : renderMessageText(message.text)}
                 </p>
               </div>
             </div>
@@ -158,11 +199,13 @@ export default function ChatArea({ channel, group, user }) {
       {/* Message input */}
       <div className="p-4 border-t">
         <form onSubmit={handleSendMessage} className="flex gap-2">
-          <Input
-            placeholder={`Message #${channel.name}`}
+          <MentionInput
+            placeholder={`Message #${channel.name} (use @ to mention)`}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            className="flex-1"
+            onSubmit={handleSendMessage}
+            members={groupMembers}
+            disabled={!socket}
           />
           <Button type="submit" size="icon" disabled={!newMessage.trim()}>
             <Send className="h-4 w-4" />

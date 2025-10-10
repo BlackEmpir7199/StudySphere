@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Hash, Plus, LogOut, Users } from 'lucide-react';
+import { Hash, Plus, LogOut, Users, UserCircle, Settings } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import BrowseGroupsDialog from './BrowseGroups';
+import UserProfile from './UserProfile';
+import GroupSettings from './GroupSettings';
 
 export default function Sidebar({
   groups,
@@ -16,10 +18,19 @@ export default function Sidebar({
   onJoinGroup,
   user,
   onLogout,
+  onUserUpdate,
 }) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [showGroupSettings, setShowGroupSettings] = useState(false);
+  const [settingsGroup, setSettingsGroup] = useState(null);
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
+
+  const handleGroupSettings = (group) => {
+    setSettingsGroup(group);
+    setShowGroupSettings(true);
+  };
 
   const handleCreateGroup = async (e) => {
     e.preventDefault();
@@ -34,17 +45,37 @@ export default function Sidebar({
       {/* User info header */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-sm truncate">{user.email}</h2>
-            <p className="text-xs text-muted-foreground">
-              {user.interests?.length > 0 ? user.interests[0] : 'Student'}
+          <div className="flex-1 min-w-0">
+            <h2 className="font-semibold text-sm truncate">
+              {user.name || user.email}
+            </h2>
+            <p className="text-xs text-muted-foreground truncate">
+              {user.name ? user.email : (user.interests?.length > 0 ? user.interests[0] : 'Student')}
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onLogout} title="Logout">
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setShowProfileDialog(true)} 
+              title="Edit Profile"
+            >
+              <UserCircle className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onLogout} title="Logout">
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* User Profile Modal */}
+      <UserProfile
+        user={user}
+        open={showProfileDialog}
+        onClose={() => setShowProfileDialog(false)}
+        onUpdate={onUserUpdate}
+      />
 
       {/* Groups list */}
       <div className="flex-1 overflow-y-auto">
@@ -104,17 +135,30 @@ export default function Sidebar({
             <div className="space-y-1">
               {groups.map((group) => (
                 <div key={group.id}>
-                  <button
-                    onClick={() => onGroupSelect(group)}
-                    className={`w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors ${
-                      selectedGroup?.id === group.id
-                        ? 'bg-primary/10 text-primary'
-                        : 'hover:bg-accent'
-                    }`}
-                  >
-                    <Users className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">{group.name}</span>
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => onGroupSelect(group)}
+                      className={`flex-1 flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors ${
+                        selectedGroup?.id === group.id
+                          ? 'bg-primary/10 text-primary'
+                          : 'hover:bg-accent'
+                      }`}
+                    >
+                      <Users className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">{group.name}</span>
+                    </button>
+                    {selectedGroup?.id === group.id && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleGroupSettings(group)}
+                        title="Group Settings"
+                      >
+                        <Settings className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
 
                   {/* Channels for selected group */}
                   {selectedGroup?.id === group.id && group.channels && (
@@ -156,6 +200,13 @@ export default function Sidebar({
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Group Settings Modal */}
+      <GroupSettings
+        group={settingsGroup}
+        open={showGroupSettings}
+        onClose={() => setShowGroupSettings(false)}
+      />
     </div>
   );
 }

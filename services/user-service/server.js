@@ -51,6 +51,7 @@ app.get('/api/profile', authenticate, async (req, res) => {
       select: {
         id: true,
         email: true,
+        name: true,
         interests: true,
         createdAt: true,
         updatedAt: true,
@@ -113,6 +114,7 @@ app.post('/api/profile/quiz', authenticate, async (req, res) => {
       select: {
         id: true,
         email: true,
+        name: true,
         interests: true,
       },
     });
@@ -157,11 +159,14 @@ app.get('/api/profile/suggestions', authenticate, async (req, res) => {
 // Update user profile
 app.patch('/api/profile', authenticate, async (req, res) => {
   try {
-    const { interests } = req.body;
+    const { interests, name } = req.body;
 
     const updateData = {};
     if (interests !== undefined) {
       updateData.interests = interests;
+    }
+    if (name !== undefined) {
+      updateData.name = name;
     }
 
     const updatedUser = await prisma.user.update({
@@ -170,6 +175,7 @@ app.patch('/api/profile', authenticate, async (req, res) => {
       select: {
         id: true,
         email: true,
+        name: true,
         interests: true,
         updatedAt: true,
       },
@@ -193,6 +199,7 @@ app.get('/api/users/:id', authenticate, async (req, res) => {
       select: {
         id: true,
         email: true,
+        name: true,
         interests: true,
         createdAt: true,
       },
@@ -229,6 +236,7 @@ app.get('/api/users/search', authenticate, async (req, res) => {
       select: {
         id: true,
         email: true,
+        name: true,
         interests: true,
       },
       take: 20,

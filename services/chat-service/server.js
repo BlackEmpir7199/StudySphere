@@ -102,6 +102,7 @@ app.get('/api/channels/:channelId/messages', authenticate, async (req, res) => {
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
       },
@@ -128,6 +129,7 @@ app.get('/api/channels/:channelId/events', authenticate, async (req, res) => {
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
       },
@@ -166,6 +168,7 @@ app.post('/api/channels/:channelId/events', authenticate, async (req, res) => {
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
       },
@@ -215,6 +218,7 @@ app.patch('/api/events/:id', authenticate, async (req, res) => {
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
       },
@@ -270,6 +274,7 @@ app.get('/api/channels/:channelId/resources', authenticate, async (req, res) => 
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
       },
@@ -320,6 +325,7 @@ app.post('/api/channels/:channelId/resources', authenticate, upload.single('file
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
       },
@@ -366,6 +372,7 @@ app.post('/api/resources/:id/summarize', authenticate, async (req, res) => {
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
       },
@@ -513,6 +520,7 @@ io.on('connection', (socket) => {
             select: {
               id: true,
               email: true,
+              name: true,
             },
           },
         },

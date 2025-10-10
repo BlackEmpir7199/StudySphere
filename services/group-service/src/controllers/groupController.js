@@ -17,6 +17,7 @@ exports.getMyGroups = async (req, res) => {
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
         members: {
@@ -25,6 +26,7 @@ exports.getMyGroups = async (req, res) => {
               select: {
                 id: true,
                 email: true,
+                name: true,
               },
             },
           },
@@ -58,6 +60,7 @@ exports.browseGroups = async (req, res) => {
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
         _count: {
@@ -103,6 +106,7 @@ exports.getGroupById = async (req, res) => {
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
         members: {
@@ -111,6 +115,7 @@ exports.getGroupById = async (req, res) => {
               select: {
                 id: true,
                 email: true,
+                name: true,
                 interests: true,
               },
             },
@@ -174,6 +179,7 @@ exports.createGroup = async (req, res) => {
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
         channels: true,
@@ -220,6 +226,7 @@ exports.updateGroup = async (req, res) => {
           select: {
             id: true,
             email: true,
+            name: true,
           },
         },
         channels: true,

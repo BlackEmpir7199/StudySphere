@@ -92,6 +92,7 @@ app.post('/api/auth/register', async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name,
         interests: user.interests,
         createdAt: user.createdAt,
       },
@@ -142,6 +143,7 @@ app.post('/api/auth/login', async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name,
         interests: user.interests,
         createdAt: user.createdAt,
       },
@@ -160,6 +162,7 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
       select: {
         id: true,
         email: true,
+        name: true,
         interests: true,
         createdAt: true,
         updatedAt: true,
