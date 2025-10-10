@@ -167,7 +167,7 @@ export default function ChatArea({ channel, group, user }) {
           messages.map((message) => (
             <div key={message.id} className="flex gap-3 hover:bg-accent/50 -mx-2 px-2 py-1 rounded">
               <div className="flex-shrink-0">
-                {message.isAIMessage ? (
+                {(message.isAIMessage || message.text?.includes('@Sphere')) ? (
                   <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-sm font-medium">
                     <Sparkles className="h-5 w-5 text-white" />
                   </div>
@@ -180,14 +180,14 @@ export default function ChatArea({ channel, group, user }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 flex-wrap">
                   <span className="font-medium text-sm">
-                    {message.isAIMessage ? 'Sphere' : (message.user.name || message.user.email)}
+                    {(message.isAIMessage || message.text?.includes('@Sphere')) ? 'Sphere' : (message.user.name || message.user.email)}
                   </span>
-                  {message.user.name && !message.isAIMessage && (
+                  {message.user.name && !(message.isAIMessage || message.text?.includes('@Sphere')) && (
                     <span className="text-xs text-muted-foreground">
                       {message.user.email}
                     </span>
                   )}
-                  {message.isAIMessage && (
+                  {(message.isAIMessage || message.text?.includes('@Sphere')) && (
                     <span className="text-xs text-muted-foreground">
                       AI Assistant
                     </span>
