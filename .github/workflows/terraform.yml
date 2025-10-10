@@ -1,6 +1,10 @@
 name: Terraform
 
 on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infra/**'
   workflow_dispatch:
     inputs:
       action:
@@ -22,7 +26,7 @@ env:
 
 jobs:
   terraform:
-    name: Terraform ${{ github.event.inputs.action }}
+    name: Terraform ${{ github.event.inputs.action || 'plan-apply' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -40,20 +44,26 @@ jobs:
     - name: Terraform Init
       run: terraform init
 
+    - name: Terraform Format Check
+      run: terraform fmt -check || true
+
+    - name: Terraform Validate
+      run: terraform validate
+
     - name: Terraform Plan
-      if: github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply'
-      run: terraform plan
+      run: terraform plan -out=tfplan
 
     - name: Terraform Apply
-      if: github.event.inputs.action == 'apply'
-      run: terraform apply -auto-approve
+      if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+      run: terraform apply -auto-approve tfplan
 
     - name: Terraform Destroy
       if: github.event.inputs.action == 'destroy'
       run: terraform destroy -auto-approve
 
-    - name: Output
-      if: github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply'
+    - name: Output Infrastructure
+      if: github.event_name == 'push' || github.event.inputs.action == 'apply'
       run: |
-        echo "✅ Terraform ${{ github.event.inputs.action }} complete!"
+        echo "✅ Terraform applied successfully!"
+        echo "📊 Infrastructure outputs:"
         terraform output
