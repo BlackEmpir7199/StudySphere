@@ -480,7 +480,7 @@ io.on('connection', (socket) => {
   // Send message with moderation (GenAI Use Case #2: Content Moderation)
   socket.on('message:send', async (data) => {
     try {
-      const { channelId, text } = data;
+      const { channelId, text, isAIMessage } = data;
 
       if (!text || text.trim().length === 0) {
         return socket.emit('error', { message: 'Message text is required' });
@@ -504,6 +504,7 @@ io.on('connection', (socket) => {
               select: {
                 id: true,
                 email: true,
+                name: true,
               },
             },
           },
@@ -525,6 +526,7 @@ io.on('connection', (socket) => {
           userId: socket.userId,
           text,
           isModerated: false,
+          isAIMessage: isAIMessage || false,
         },
         include: {
           user: {
@@ -539,6 +541,66 @@ io.on('connection', (socket) => {
 
       // Broadcast message to channel
       io.to(`channel:${channelId}`).emit('message:received', message);
+
+      // If it's an AI message, process it and send AI response
+      if (isAIMessage && text.includes('@Sphere')) {
+        try {
+          // Extract the prompt after @Sphere
+          const promptMatch = text.match(/@Sphere\s+(.+)/i);
+          if (promptMatch) {
+            const prompt = promptMatch[1].trim();
+            
+            // Generate AI response using Gemini
+            const { generateAIResponse } = require('../../shared/utils/azure');
+            const aiResponse = await generateAIResponse(prompt);
+            
+            // Create AI response message
+            const aiMessage = await prisma.message.create({
+              data: {
+                channelId,
+                userId: socket.userId, // Keep original user as sender
+                text: aiResponse,
+                isModerated: false,
+                isAIMessage: true,
+              },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                  },
+                },
+              },
+            });
+
+            // Broadcast AI response to channel
+            io.to(`channel:${channelId}`).emit('message:received', aiMessage);
+          }
+        } catch (aiError) {
+          console.error('AI response error:', aiError);
+          // Send error message from AI
+          const errorMessage = await prisma.message.create({
+            data: {
+              channelId,
+              userId: socket.userId,
+              text: "Sorry, I'm having trouble processing your request right now. Please try again later.",
+              isModerated: false,
+              isAIMessage: true,
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  name: true,
+                },
+              },
+            },
+          });
+          io.to(`channel:${channelId}`).emit('message:received', errorMessage);
+        }
+      }
     } catch (error) {
       console.error('Send message error:', error);
       socket.emit('error', { message: 'Failed to send message' });

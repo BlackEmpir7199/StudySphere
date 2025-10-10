@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '../ui/input';
+import { Sparkles } from 'lucide-react';
 
 export default function MentionInput({ 
   value, 
@@ -27,6 +28,15 @@ export default function MentionInput({
       // Check if there's no space after @
       if (!textAfterAt.includes(' ')) {
         const query = textAfterAt.toLowerCase();
+        
+        // Check for @sphere AI assistant
+        if ('sphere'.startsWith(query)) {
+          setSuggestions([{ id: 'sphere', user: { name: 'Sphere', email: 'AI Assistant' }, isAI: true }]);
+          setShowSuggestions(true);
+          setMentionStart(lastAtIndex);
+          setSelectedIndex(0);
+          return;
+        }
         
         // Filter members by name or email
         const filtered = members.filter(member => {
@@ -117,9 +127,15 @@ export default function MentionInput({
                 index === selectedIndex ? 'bg-accent' : ''
               }`}
             >
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium flex-shrink-0">
-                {(member.user.name || member.user.email)[0].toUpperCase()}
-              </div>
+              {member.isAI ? (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-sm font-medium flex-shrink-0">
+                  <Sparkles className="h-4 w-4 text-white" />
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium flex-shrink-0">
+                  {(member.user.name || member.user.email)[0].toUpperCase()}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">
                   {member.user.name || member.user.email}

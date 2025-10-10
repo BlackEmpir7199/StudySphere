@@ -237,11 +237,51 @@ Do not include any other text, just the JSON array.`;
   }
 }
 
+/**
+ * Generate AI response for chat messages using Google Gemini
+ * @param {string} prompt - User's prompt/question
+ * @returns {Promise<string>} AI response
+ */
+async function generateAIResponse(prompt) {
+  if (!geminiModel) {
+    console.warn('Gemini API not configured, returning mock response');
+    return "I'm Sphere, your AI study assistant! I'm here to help with your academic questions. However, I'm currently in demo mode. Please configure the Gemini API for full functionality.";
+  }
+
+  try {
+    const systemPrompt = `You are Sphere, an AI study assistant for StudySphere, a collaborative study platform for college students. 
+
+Your role:
+- Help students with academic questions and study guidance
+- Provide clear, educational explanations
+- Suggest study strategies and resources
+- Be encouraging and supportive
+- Keep responses concise but helpful (2-3 sentences max for most queries)
+- For complex topics, break them down into digestible parts
+
+User prompt: ${prompt}
+
+Respond as Sphere with a helpful, educational tone.`;
+
+    console.log('📤 Sending to Gemini for AI response...');
+    const result = await geminiModel.generateContent(systemPrompt);
+    const response = await result.response;
+    const aiResponse = response.text().trim();
+    
+    console.log('📥 Gemini AI response generated');
+    return aiResponse;
+  } catch (error) {
+    console.error('Error generating AI response:', error.message);
+    return "I'm sorry, I'm having trouble processing your request right now. Please try again later or contact support if the issue persists.";
+  }
+}
+
 module.exports = {
   classifyQuizAnswers,
   moderateContent,
   simpleModerate,
   summarizeResource,
   generateStudySuggestions,
+  generateAIResponse,
 };
 
