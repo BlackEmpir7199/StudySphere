@@ -53,9 +53,6 @@ export default function GroupSettings({ group, open, onClose }) {
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl">{group.name}</DialogTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-5 w-5" />
-            </Button>
           </div>
           {group.description && (
             <p className="text-sm text-muted-foreground mt-2">

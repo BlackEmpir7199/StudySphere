@@ -77,9 +77,10 @@ function optionalAuthenticate(req, res, next) {
 function setAuthCookie(res, token) {
   res.cookie('token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    secure: false, // Allow HTTP for development and public IP access
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/',
   });
 }
 
@@ -90,8 +91,9 @@ function setAuthCookie(res, token) {
 function clearAuthCookie(res) {
   res.clearCookie('token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: false,
     sameSite: 'lax',
+    path: '/',
   });
 }
 

@@ -1,45 +1,50 @@
-const { OpenAI } = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const ContentModeratorClient = require('@azure/cognitiveservices-contentmoderator').ContentModeratorClient;
 const msRest = require('@azure/ms-rest-azure-js');
 
-// Azure OpenAI Configuration
-const AZURE_OPENAI_KEY = process.env.AZURE_OPENAI_KEY;
-const AZURE_OPENAI_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT;
-const AZURE_OPENAI_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o-mini';
+// Google Gemini Configuration
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp';
 
 // Azure Content Moderator Configuration
 const AZURE_MODERATOR_KEY = process.env.AZURE_MODERATOR_KEY;
 const AZURE_MODERATOR_ENDPOINT = process.env.AZURE_MODERATOR_ENDPOINT;
 
-// Initialize OpenAI client
-let openaiClient = null;
-if (AZURE_OPENAI_KEY && AZURE_OPENAI_ENDPOINT) {
-  openaiClient = new OpenAI({
-    apiKey: AZURE_OPENAI_KEY,
-    baseURL: `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${AZURE_OPENAI_DEPLOYMENT}`,
-    defaultQuery: { 'api-version': process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview' },
-    defaultHeaders: { 'api-key': AZURE_OPENAI_KEY },
-  });
+// Initialize Gemini client
+let genAI = null;
+let geminiModel = null;
+if (GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+  geminiModel = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+  console.log(`✅ Gemini AI initialized with model: ${GEMINI_MODEL}`);
+} else {
+  console.warn('⚠️  Gemini API key not configured, using mock responses');
 }
 
 // Initialize Content Moderator client
 let moderatorClient = null;
 if (AZURE_MODERATOR_KEY && AZURE_MODERATOR_ENDPOINT) {
-  const credentials = new msRest.ApiKeyCredentials({
-    inHeader: { 'Ocp-Apim-Subscription-Key': AZURE_MODERATOR_KEY }
-  });
-  moderatorClient = new ContentModeratorClient(credentials, AZURE_MODERATOR_ENDPOINT);
+  try {
+    const credentials = new msRest.ApiKeyCredentials({
+      inHeader: { 'Ocp-Apim-Subscription-Key': AZURE_MODERATOR_KEY }
+    });
+    moderatorClient = new ContentModeratorClient(credentials, AZURE_MODERATOR_ENDPOINT);
+    console.log('✅ Azure Content Moderator initialized');
+  } catch (error) {
+    console.warn('⚠️  Content Moderator initialization failed:', error.message);
+    console.warn('Content moderation will use fallback method');
+  }
 }
 
 /**
- * Classify quiz answers into interest categories using Azure OpenAI
+ * Classify quiz answers into interest categories using Google Gemini
  * @param {Array<string>} answers - User's quiz answers
  * @returns {Promise<Array<string>>} Array of classified interests
  */
 async function classifyQuizAnswers(answers) {
-  if (!openaiClient) {
-    console.warn('Azure OpenAI not configured, returning mock interests');
-    return ['Computer Science', 'Mathematics'];
+  if (!geminiModel) {
+    console.warn('Gemini API not configured, returning mock interests');
+    return ['Computer Science', 'Mathematics', 'Programming'];
   }
 
   try {
@@ -51,23 +56,20 @@ ${answers.map((a, i) => `${i + 1}. ${a}`).join('\n')}
 Based on these answers, identify 3-5 specific academic interests or subject areas the student is interested in.
 Return ONLY a JSON array of interests, for example: ["Computer Science", "Algorithms", "Mathematics", "Machine Learning"]
 
-Interests:`;
+Do not include any other text, just the JSON array.`;
 
-    const response = await openaiClient.chat.completions.create({
-      model: AZURE_OPENAI_DEPLOYMENT,
-      messages: [
-        { role: 'system', content: 'You are a helpful educational assistant that identifies student interests.' },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 200,
-    });
-
-    const content = response.choices[0].message.content.trim();
+    console.log('📤 Sending to Gemini for classification...');
+    const result = await geminiModel.generateContent(prompt);
+    const response = await result.response;
+    const content = response.text().trim();
+    
+    console.log('📥 Gemini response:', content);
     
     // Parse JSON response
     try {
-      const interests = JSON.parse(content);
+      // Remove markdown code blocks if present
+      const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const interests = JSON.parse(cleaned);
       return Array.isArray(interests) ? interests : [];
     } catch (parseError) {
       // Fallback: extract interests from text
@@ -76,7 +78,12 @@ Interests:`;
         const parsed = JSON.parse(matches[0]);
         return Array.isArray(parsed) ? parsed : [];
       }
-      return [];
+      // Last resort: extract quoted strings
+      const quotedStrings = content.match(/"([^"]+)"/g);
+      if (quotedStrings) {
+        return quotedStrings.map(s => s.replace(/"/g, '')).slice(0, 5);
+      }
+      return answers.filter(a => a && a.length > 2).slice(0, 5);
     }
   } catch (error) {
     console.error('Error classifying quiz answers:', error.message);
@@ -86,18 +93,20 @@ Interests:`;
 }
 
 /**
- * Moderate text content using Azure Content Moderator
+ * Moderate text content using Azure Content Moderator or fallback
  * @param {string} text - Text to moderate
  * @returns {Promise<Object>} Moderation result with isClean and reason
  */
 async function moderateContent(text) {
+  // Use simple moderation for now (Content Moderator SDK has compatibility issues)
+  return simpleModerate(text);
+  
+  /* Azure Content Moderator integration (disabled for now)
   if (!moderatorClient) {
-    console.warn('Azure Content Moderator not configured, returning clean result');
-    return { isClean: true, reason: null };
+    return simpleModerate(text);
   }
 
   try {
-    // Screen text for profanity and offensive content
     const screenResult = await moderatorClient.textModeration.screenText(
       'text/plain',
       Buffer.from(text),
@@ -109,7 +118,6 @@ async function moderateContent(text) {
       }
     );
 
-    // Check if content is flagged
     const isClean = !(
       (screenResult.terms && screenResult.terms.length > 0) ||
       (screenResult.classification && (
@@ -131,9 +139,9 @@ async function moderateContent(text) {
     return { isClean, reason };
   } catch (error) {
     console.error('Error moderating content:', error.message);
-    // Fail open - allow content if moderation fails
-    return { isClean: true, reason: null };
+    return simpleModerate(text);
   }
+  */
 }
 
 /**
@@ -157,14 +165,14 @@ function simpleModerate(text) {
 }
 
 /**
- * Summarize resource content using Azure OpenAI
+ * Summarize resource content using Google Gemini
  * @param {string} title - Resource title
  * @param {string} content - Resource content to summarize
  * @returns {Promise<string>} Bullet-point summary
  */
 async function summarizeResource(title, content) {
-  if (!openaiClient) {
-    console.warn('Azure OpenAI not configured, returning mock summary');
+  if (!geminiModel) {
+    console.warn('Gemini API not configured, returning mock summary');
     return `• Summary for: ${title}\n• Key concepts extracted from content\n• Main topics covered`;
   }
 
@@ -177,19 +185,15 @@ Content:
 ${content.substring(0, 3000)} ${content.length > 3000 ? '...' : ''}
 
 Provide a clear, student-friendly summary with the most important concepts and takeaways.
-Format as bullet points starting with •`;
+Format as bullet points starting with • (bullet character).`;
 
-    const response = await openaiClient.chat.completions.create({
-      model: AZURE_OPENAI_DEPLOYMENT,
-      messages: [
-        { role: 'system', content: 'You are a helpful educational assistant that summarizes study materials.' },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.5,
-      max_tokens: 300,
-    });
-
-    return response.choices[0].message.content.trim();
+    console.log('📤 Sending to Gemini for summarization...');
+    const result = await geminiModel.generateContent(prompt);
+    const response = await result.response;
+    const summary = response.text().trim();
+    
+    console.log('📥 Gemini summary generated');
+    return summary;
   } catch (error) {
     console.error('Error summarizing resource:', error.message);
     return `• Summary for: ${title}\n• Content summary unavailable\n• Please review the full resource`;
@@ -197,36 +201,33 @@ Format as bullet points starting with •`;
 }
 
 /**
- * Generate study suggestions based on user interests
+ * Generate study suggestions based on user interests using Google Gemini
  * @param {Array<string>} interests - User's interests
  * @returns {Promise<Array<string>>} Study group suggestions
  */
 async function generateStudySuggestions(interests) {
-  if (!openaiClient) {
+  if (!geminiModel) {
     return interests.map(i => `${i} Study Group`);
   }
 
   try {
     const prompt = `Based on these student interests: ${interests.join(', ')}
 
-Suggest 5 relevant study group names and topics that would be beneficial. Format as a JSON array of strings.
-Example: ["Advanced Algorithms Study Circle", "Machine Learning Practical Projects", ...]`;
+Suggest 5 relevant study group names and topics that would be beneficial. 
+Return ONLY a JSON array of strings.
+Example: ["Advanced Algorithms Study Circle", "Machine Learning Practical Projects", ...]
 
-    const response = await openaiClient.chat.completions.create({
-      model: AZURE_OPENAI_DEPLOYMENT,
-      messages: [
-        { role: 'system', content: 'You are a helpful educational assistant.' },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.8,
-      max_tokens: 200,
-    });
+Do not include any other text, just the JSON array.`;
 
-    const content = response.choices[0].message.content.trim();
+    const result = await geminiModel.generateContent(prompt);
+    const response = await result.response;
+    const content = response.text().trim();
     
     try {
-      const suggestions = JSON.parse(content);
-      return Array.isArray(suggestions) ? suggestions : [];
+      // Remove markdown code blocks if present
+      const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const suggestions = JSON.parse(cleaned);
+      return Array.isArray(suggestions) ? suggestions : interests.map(i => `${i} Study Group`);
     } catch {
       return interests.map(i => `${i} Study Group`);
     }

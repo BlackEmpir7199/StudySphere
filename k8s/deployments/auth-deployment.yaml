@@ -23,14 +23,14 @@ spec:
         ports:
         - containerPort: 5001
           name: http
+        envFrom:
+        - secretRef:
+            name: azure-secrets
         env:
         - name: PORT
           value: "5001"
         - name: NODE_ENV
           value: "production"
-        envFrom:
-        - secretRef:
-            name: azure-secrets
         resources:
           requests:
             cpu: 100m

@@ -8,12 +8,8 @@ terraform {
     }
   }
 
-  backend "azurerm" {
-    resource_group_name  = "terraform-state-rg"
-    storage_account_name = "tfstudysphere"
-    container_name       = "tfstate"
-    key                  = "studysphere.terraform.tfstate"
-  }
+  # Using local state for simplicity
+  # For production, configure remote backend in Azure Storage
 }
 
 provider "azurerm" {

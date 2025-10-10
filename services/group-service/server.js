@@ -7,7 +7,18 @@ const morgan = require('morgan');
 const groupRoutes = require('./src/routes/groupRoutes');
 
 const app = express();
-const PORT = process.env.GROUP_SERVICE_PORT || process.env.PORT || 5003;
+// Parse PORT - K8s might set it to "tcp://IP:PORT" format
+const parsePort = (portVal) => {
+  if (!portVal) return 5003;
+  if (typeof portVal === 'number') return portVal;
+  const portStr = String(portVal);
+  if (portStr.includes('://')) {
+    const match = portStr.match(/:(\d+)$/);
+    return match ? parseInt(match[1]) : 5003;
+  }
+  return parseInt(portStr) || 5003;
+};
+const PORT = parsePort(process.env.PORT);
 
 // Middleware
 app.use(helmet());

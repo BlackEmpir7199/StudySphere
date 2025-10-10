@@ -16,7 +16,18 @@ const { moderateContent, summarizeResource } = require('../../shared/utils/azure
 const app = express();
 const server = http.createServer(app);
 const prisma = new PrismaClient();
-const PORT = process.env.CHAT_SERVICE_PORT || process.env.PORT || 5004;
+// Parse PORT - K8s might set it to "tcp://IP:PORT" format
+const parsePort = (portVal) => {
+  if (!portVal) return 5004;
+  if (typeof portVal === 'number') return portVal;
+  const portStr = String(portVal);
+  if (portStr.includes('://')) {
+    const match = portStr.match(/:(\d+)$/);
+    return match ? parseInt(match[1]) : 5004;
+  }
+  return parseInt(portStr) || 5004;
+};
+const PORT = parsePort(process.env.PORT);
 
 // Socket.io setup
 const io = new Server(server, {

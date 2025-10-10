@@ -10,7 +10,18 @@ const { classifyQuizAnswers, generateStudySuggestions } = require('../../shared/
 
 const app = express();
 const prisma = new PrismaClient();
-const PORT = process.env.USER_SERVICE_PORT || process.env.PORT || 5002;
+// Parse PORT - K8s might set it to "tcp://IP:PORT" format
+const parsePort = (portVal) => {
+  if (!portVal) return 5002;
+  if (typeof portVal === 'number') return portVal;
+  const portStr = String(portVal);
+  if (portStr.includes('://')) {
+    const match = portStr.match(/:(\d+)$/);
+    return match ? parseInt(match[1]) : 5002;
+  }
+  return parseInt(portStr) || 5002;
+};
+const PORT = parsePort(process.env.PORT);
 
 // Middleware
 app.use(helmet());

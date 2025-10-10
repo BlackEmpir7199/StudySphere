@@ -4,20 +4,88 @@ metadata:
   name: studysphere-ingress
   namespace: production
   annotations:
-    kubernetes.io/ingress.class: nginx
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/use-regex: "true"
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/websocket-services: "chat-service"
 spec:
-  tls:
-  - hosts:
-    - studysphere.example.com
-    secretName: studysphere-tls
+  ingressClassName: nginx
   rules:
-  - host: studysphere.example.com
-    http:
+  - http:
       paths:
+      # Auth service
+      - path: /api/auth
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 5001
+      
+      # User service - profile routes
+      - path: /api/profile
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 5002
+      
+      # User service - users routes
+      - path: /api/users
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 5002
+      
+      # Group service
+      - path: /api/groups
+        pathType: Prefix
+        backend:
+          service:
+            name: group-service
+            port:
+              number: 5003
+      
+      # Chat service - channels
+      - path: /api/channels
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 5004
+      
+      # Chat service - events
+      - path: /api/events
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 5004
+      
+      # Chat service - resources
+      - path: /api/resources
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 5004
+      
+      # Socket.io
+      - path: /socket.io
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 5004
+      
+      # Frontend - everything else
       - path: /
         pathType: Prefix
         backend:
@@ -25,46 +93,3 @@ spec:
             name: frontend
             port:
               number: 80
-      - path: /api/auth(/|$)(.*)
-        pathType: Prefix
-        backend:
-          service:
-            name: auth-service
-            port:
-              number: 5001
-      - path: /api/profile(/|$)(.*)
-        pathType: Prefix
-        backend:
-          service:
-            name: user-service
-            port:
-              number: 5002
-      - path: /api/groups(/|$)(.*)
-        pathType: Prefix
-        backend:
-          service:
-            name: group-service
-            port:
-              number: 5003
-      - path: /api/channels(/|$)(.*)
-        pathType: Prefix
-        backend:
-          service:
-            name: chat-service
-            port:
-              number: 5004
-      - path: /api/events(/|$)(.*)
-        pathType: Prefix
-        backend:
-          service:
-            name: chat-service
-            port:
-              number: 5004
-      - path: /api/resources(/|$)(.*)
-        pathType: Prefix
-        backend:
-          service:
-            name: chat-service
-            port:
-              number: 5004
-

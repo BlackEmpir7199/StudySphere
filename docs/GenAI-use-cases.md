@@ -4,10 +4,10 @@
 
 StudySphere integrates three Azure AI services to enhance the study group experience through intelligent automation and content moderation.
 
-## Use Case 1: Quiz Classification with Azure OpenAI
+## Use Case 1: Quiz Classification with Google Gemini AI
 
 ### Description
-When students register, they complete a 5-question personality quiz. Azure OpenAI (GPT-4o-mini) analyzes their answers and classifies them into specific academic interests.
+When students register, they complete a 5-question personality quiz. Google Gemini (gemini-2.0-flash-exp) analyzes their answers and classifies them into specific academic interests.
 
 ### Flow Diagram
 
@@ -33,7 +33,7 @@ sequenceDiagram
 
 ### Implementation
 
-**Service:** Azure OpenAI (GPT-4o-mini)
+**Service:** Google Gemini AI (gemini-2.0-flash-exp)
 
 **Endpoint:** `POST /api/profile/quiz`
 
@@ -91,20 +91,28 @@ Interests:
 }
 ```
 
-### Why Azure OpenAI?
+### Why Google Gemini?
 
 **Advantages:**
-- **Contextual Understanding:** GPT-4o-mini understands nuanced responses better than rule-based systems
+- **Contextual Understanding:** Gemini 2.0 Flash understands nuanced responses better than rule-based systems
 - **Flexibility:** Can handle free-text answers and multiple languages
-- **Cost-Effective:** gpt-4o-mini is optimized for high-volume, low-latency tasks
-- **Scalability:** Azure's infrastructure handles concurrent requests
-- **Compliance:** Enterprise-grade security and data privacy
+- **Cost-Effective:** **FREE tier** with 1,500 requests/day - perfect for students!
+- **Fast:** Optimized for low-latency tasks
+- **No Approval:** Instant access, no waiting period
+- **High Quality:** Latest Google AI, comparable to GPT-4
 
 **Cost Analysis:**
-- Input: ~100 tokens per request
-- Output: ~50 tokens per response
-- Cost: $0.00015 per 1K input tokens, $0.0006 per 1K output tokens
-- Per request: ~$0.00005 (extremely affordable)
+- Free tier: 1,500 requests/day
+- No credit card needed
+- For 100 users/day: $0/month
+- Production: $0.075 per 1M input tokens (very cheap)
+- **Per request: $0** (using free tier)
+
+**Why Switched from Azure OpenAI:**
+- Azure OpenAI requires 1-2 day approval process
+- Gemini offers instant access - better for student projects
+- Free tier more generous than Azure
+- Still demonstrates enterprise-grade AI integration
 
 **Alternative Considered:** Simple keyword matching → Rejected due to lack of semantic understanding
 
@@ -275,10 +283,10 @@ app.post('/api/channels/:channelId/resources',
 
 ---
 
-## Use Case 3: Resource Summarization with Azure OpenAI
+## Use Case 3: Resource Summarization with Google Gemini AI
 
 ### Description
-When students upload study materials (PDFs, articles, notes), Azure OpenAI automatically generates concise bullet-point summaries to help peers quickly understand the content.
+When students upload study materials (PDFs, articles, notes), Google Gemini automatically generates concise bullet-point summaries to help peers quickly understand the content.
 
 ### Flow Diagram
 
@@ -306,7 +314,7 @@ sequenceDiagram
 
 ### Implementation
 
-**Service:** Azure OpenAI (GPT-4o-mini)
+**Service:** Google Gemini AI (gemini-2.0-flash-exp)
 
 **Endpoint:** `POST /api/resources/:id/summarize`
 
@@ -330,20 +338,9 @@ ${content.substring(0, 3000)}
 Provide a clear, student-friendly summary with the most important concepts and takeaways.
 Format as bullet points starting with •`;
 
-  const response = await openaiClient.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are a helpful educational assistant that summarizes study materials.'
-      },
-      { role: 'user', content: prompt }
-    ],
-    temperature: 0.5,
-    max_tokens: 300
-  });
-  
-  return response.choices[0].message.content.trim();
+  const result = await geminiModel.generateContent(prompt);
+  const response = await result.response;
+  return response.text().trim();
 }
 ```
 
@@ -392,29 +389,37 @@ Content: A binary search tree (BST) is a node-based binary tree data structure..
 )}
 ```
 
-### Why Azure OpenAI?
+### Why Google Gemini?
 
 **Advantages:**
-- **High-Quality Summaries:** GPT-4o-mini produces accurate, coherent summaries
+- **High-Quality Summaries:** Gemini 2.0 Flash produces accurate, coherent summaries
 - **Domain Adaptation:** Understands technical and academic terminology
 - **Customizable Length:** Can generate short or detailed summaries
 - **Context Retention:** Maintains important relationships between concepts
 - **Multi-format:** Handles various document types (PDF, Markdown, HTML)
+- **FREE Tier:** 1,500 requests/day at no cost!
 
 **Cost Analysis:**
-- Input: ~1,000 tokens (3,000 characters)
-- Output: ~100 tokens (bullet points)
-- Cost per summary: ~$0.00025
-- For 100 resources/day: ~$0.75/month
+- Free tier: 1,500 requests/day (perfect for demo!)
+- For 100 resources/day: $0/month
+- Production pricing: $0.075 per 1M tokens (very cheap)
+- **Cost per summary: $0** (using free tier)
 
 **Performance:**
-- Latency: 2-5 seconds
+- Latency: 1-3 seconds (faster than GPT-4)
+- Quality: Comparable to GPT-4
 - Cache: Store summaries to avoid re-generation
+
+**Why Switched from Azure OpenAI:**
+- No approval wait time (instant access)
+- More generous free tier
+- Better for student projects
+- Still enterprise-grade AI
 
 **Alternatives Considered:**
 - Extractive summarization (TextRank) → Less coherent, misses context
-- GPT-3.5-turbo → More expensive, similar quality
-- Claude API → Not available on Azure
+- Azure OpenAI → Requires approval, less free tier
+- Claude API → Limited availability
 
 ---
 
@@ -422,12 +427,13 @@ Content: A binary search tree (BST) is a node-based binary tree data structure..
 
 | Feature | Use Case 1: Quiz | Use Case 2: Moderation | Use Case 3: Summarization |
 |---------|------------------|------------------------|---------------------------|
-| **Service** | Azure OpenAI | Azure Content Moderator | Azure OpenAI |
-| **Model** | gpt-4o-mini | Text Moderation API | gpt-4o-mini |
-| **Latency** | 1-2s | <100ms | 2-5s |
-| **Cost/Request** | $0.00005 | $0.001 | $0.00025 |
+| **Service** | Google Gemini | Azure Content Moderator | Google Gemini |
+| **Model** | gemini-2.0-flash-exp | Text Moderation API | gemini-2.0-flash-exp |
+| **Latency** | 1-2s | <100ms | 1-3s |
+| **Cost/Request** | $0 (free tier) | $0.001 | $0 (free tier) |
 | **Frequency** | Once per user | Per message (high) | On-demand |
 | **Purpose** | Personalization | Safety | Efficiency |
+| **Free Tier** | 1,500/day | 5,000/month | 1,500/day |
 
 ---
 
