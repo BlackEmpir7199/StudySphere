@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Hash } from 'lucide-react';
+import { Send, Hash, Sparkles } from 'lucide-react';
 import { chatAPIs, groupsAPI } from '../../lib/api';
 import { getSocket } from '../../lib/socket';
 import { Button } from '../ui/button';
@@ -84,14 +84,25 @@ export default function ChatArea({ channel, group, user }) {
   };
 
   const handleSendMessage = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
     
     if (!newMessage.trim() || !socket) return;
 
-    socket.emit('message:send', {
-      channelId: channel.id,
-      text: newMessage,
-    });
+    // Check if message contains @sphere
+    if (newMessage.includes('@Sphere')) {
+      socket.emit('message:send', {
+        channelId: channel.id,
+        text: newMessage,
+        isAIMessage: true,
+      });
+    } else {
+      socket.emit('message:send', {
+        channelId: channel.id,
+        text: newMessage,
+      });
+    }
 
     setNewMessage('');
   };
@@ -156,18 +167,29 @@ export default function ChatArea({ channel, group, user }) {
           messages.map((message) => (
             <div key={message.id} className="flex gap-3 hover:bg-accent/50 -mx-2 px-2 py-1 rounded">
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                  {(message.user.name || message.user.email)[0].toUpperCase()}
-                </div>
+                {message.isAIMessage ? (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-sm font-medium">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
+                    {(message.user.name || message.user.email)[0].toUpperCase()}
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 flex-wrap">
                   <span className="font-medium text-sm">
-                    {message.user.name || message.user.email}
+                    {message.isAIMessage ? 'Sphere' : (message.user.name || message.user.email)}
                   </span>
-                  {message.user.name && (
+                  {message.user.name && !message.isAIMessage && (
                     <span className="text-xs text-muted-foreground">
                       {message.user.email}
+                    </span>
+                  )}
+                  {message.isAIMessage && (
+                    <span className="text-xs text-muted-foreground">
+                      AI Assistant
                     </span>
                   )}
                   <span className="text-xs text-muted-foreground">
