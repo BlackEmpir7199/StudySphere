@@ -16,26 +16,27 @@ provider "azurerm" {
   features {}
 }
 
-# Resource Group
+# Resource Group (imported - already exists)
 resource "azurerm_resource_group" "main" {
   name     = var.resource_group_name
-  location = var.location
+  location = "southindia"
 
-  tags = {
-    Environment = var.environment
-    Project     = "StudySphere"
-    ManagedBy   = "Terraform"
+  tags = {}
+  
+  lifecycle {
+    ignore_changes = [tags, location]
   }
 }
 
 # PostgreSQL Flexible Server
 resource "azurerm_postgresql_flexible_server" "main" {
-  name                   = "${var.project_name}-postgres-${var.environment}"
+  name                   = "studysphere-postgres"
   resource_group_name    = azurerm_resource_group.main.name
-  location               = azurerm_resource_group.main.location
+  location               = "Korea Central"
   version                = "15"
   administrator_login    = var.db_admin_username
   administrator_password = var.db_admin_password
+  zone                   = "1"
   
   storage_mb = 32768
   sku_name   = "B_Standard_B1ms"
@@ -43,9 +44,13 @@ resource "azurerm_postgresql_flexible_server" "main" {
   backup_retention_days        = 7
   geo_redundant_backup_enabled = false
 
-  tags = {
-    Environment = var.environment
-    Project     = "StudySphere"
+  tags = {}
+  
+  lifecycle {
+    ignore_changes = [
+      zone,
+      tags
+    ]
   }
 }
 
@@ -60,7 +65,7 @@ resource "azurerm_postgresql_flexible_server_firewall_rule" "azure_services" {
 # PostgreSQL Firewall Rule - Allow all IPs (for development)
 # In production, restrict this to specific IPs
 resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_all" {
-  name             = "AllowAll"
+  name             = "AllowAll_2025-10-10_20-1-54"
   server_id        = azurerm_postgresql_flexible_server.main.id
   start_ip_address = "0.0.0.0"
   end_ip_address   = "255.255.255.255"
@@ -71,32 +76,34 @@ resource "azurerm_postgresql_flexible_server_database" "studysphere" {
   name      = "studysphere"
   server_id = azurerm_postgresql_flexible_server.main.id
   collation = "en_US.utf8"
-  charset   = "utf8"
+  charset   = "UTF8"
 }
 
 # Azure Container Registry
 resource "azurerm_container_registry" "main" {
   name                = var.acr_name
   resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
+  location            = "koreacentral"
   sku                 = "Standard"
   admin_enabled       = true
 
-  tags = {
-    Environment = var.environment
-    Project     = "StudySphere"
+  tags = {}
+  
+  lifecycle {
+    ignore_changes = [tags]
   }
 }
 
 # Azure Kubernetes Service
 resource "azurerm_kubernetes_cluster" "main" {
   name                = var.aks_cluster_name
-  location            = azurerm_resource_group.main.location
+  location            = "koreacentral"
   resource_group_name = azurerm_resource_group.main.name
-  dns_prefix          = "${var.project_name}-${var.environment}"
+  dns_prefix          = "studyspher-studysphere-rg-ca898a"
+  kubernetes_version  = "1.32"
 
   default_node_pool {
-    name       = "default"
+    name       = "nodepool1"
     node_count = var.aks_node_count
     vm_size    = "Standard_B2s"
     
@@ -112,26 +119,44 @@ resource "azurerm_kubernetes_cluster" "main" {
   network_profile {
     network_plugin    = "azure"
     load_balancer_sku = "standard"
+    service_cidr      = "10.0.0.0/16"
+    dns_service_ip    = "10.0.0.10"
+  }
+  
+  linux_profile {
+    admin_username = "azureuser"
+    ssh_key {
+      key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCbwTJc5LNJUjL8UWvtwn6doZhzMK77VhfaEY/t8pANk3tYSB/RTcDC/QZA7+mMsTUgHPCtauyFOCOkWzhDuoq8OKKZ1FQm2D7GkSGygxYQSObMS+Wzg1oVdBo6fGnOxXME+N1PNR3N7xZr4iOoARDA/yhS/6yYsoAfJIqtpSPVnElU/j33IC8QPxFB2X/ZBkNvXp3LChn98smDvp5K9gmzZVCFeUpHsl7mjneFmK/LdUcXKRLvlUTItc0Y2fP0/JIboQcKQuUcjzYwWsCMTVfBSWfeQTcYjfG0z1ktyciYHX0BFJLSZvX/wEvIgO7QTCoqpBqyy8DAZeq0kvYT/DCx"
+    }
   }
 
-  tags = {
-    Environment = var.environment
-    Project     = "StudySphere"
+  tags = {}
+  
+  lifecycle {
+    ignore_changes = [
+      tags,
+      default_node_pool[0].node_count,
+      kubernetes_version
+    ]
   }
 }
 
-# Role Assignment - Allow AKS to pull from ACR
+# Role Assignment - Allow AKS to pull from ACR (already exists, will import)
 resource "azurerm_role_assignment" "aks_acr_pull" {
   principal_id                     = azurerm_kubernetes_cluster.main.kubelet_identity[0].object_id
   role_definition_name             = "AcrPull"
   scope                            = azurerm_container_registry.main.id
   skip_service_principal_aad_check = true
+  
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Log Analytics Workspace for AKS monitoring
 resource "azurerm_log_analytics_workspace" "main" {
   name                = "${var.project_name}-logs-${var.environment}"
-  location            = azurerm_resource_group.main.location
+  location            = "koreacentral"
   resource_group_name = azurerm_resource_group.main.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
