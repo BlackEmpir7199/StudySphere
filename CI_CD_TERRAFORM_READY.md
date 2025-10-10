@@ -106,13 +106,13 @@ ACR_NAME              = studysphereacr
 ACR_LOGIN_SERVER      = studysphereacr.azurecr.io
 AKS_CLUSTER_NAME      = studysphere-aks
 AKS_RESOURCE_GROUP    = studysphere-rg
-DATABASE_URL          = postgresql://pgadmin:StudySphere@2024!@studysphere-postgres.postgres.database.azure.com:5432/studysphere?sslmode=require
-DB_ADMIN_PASSWORD     = StudySphere@2024!
-JWT_SECRET            = prod-secret-key-2024-studysphere
-GEMINI_API_KEY        = AIzaSyBszhxNagL88wl_vSiX9G1BTnNKzKsVhH8
+DATABASE_URL          = postgresql://pgadmin:YOUR_PASSWORD@studysphere-postgres.postgres.database.azure.com:5432/studysphere?sslmode=require
+DB_ADMIN_PASSWORD     = YOUR_DB_PASSWORD
+JWT_SECRET            = YOUR_STRONG_JWT_SECRET
+GEMINI_API_KEY        = YOUR_GEMINI_API_KEY
 GEMINI_MODEL          = gemini-2.0-flash-exp
-AZURE_MODERATOR_KEY   = EDw9uUjnygAxbh4twrND2yqrqoN2FHLzdCR1SQyPwnsxoCjyD3zIJQQJ99BJACNns7RXJ3w3AAAHACOG7QrJ
-AZURE_MODERATOR_ENDPOINT = https://studyspheremoderator.cognitiveservices.azure.com/
+AZURE_MODERATOR_KEY   = YOUR_AZURE_MODERATOR_KEY
+AZURE_MODERATOR_ENDPOINT = https://YOUR_MODERATOR_ENDPOINT.cognitiveservices.azure.com/
 ```
 
 **3. Create GitHub Environments:**

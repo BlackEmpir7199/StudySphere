@@ -64,13 +64,13 @@ Go to your GitHub repository → **Settings** → **Secrets and variables** → 
 | `ACR_LOGIN_SERVER` | `studysphereacr.azurecr.io` | Your ACR login server |
 | `AKS_CLUSTER_NAME` | `studysphere-aks` | Your AKS cluster name |
 | `AKS_RESOURCE_GROUP` | `studysphere-rg` | Your resource group |
-| `DATABASE_URL` | `postgresql://pgadmin:PASSWORD@studysphere-postgres.postgres.database.azure.com:5432/studysphere?sslmode=require` | Your PostgreSQL connection string |
-| `DB_ADMIN_PASSWORD` | `StudySphere@2024!` | Your database password |
-| `JWT_SECRET` | `prod-secret-key-2024-studysphere` | Strong random string |
-| `GEMINI_API_KEY` | `AIzaSy...` | From Google AI Studio |
+| `DATABASE_URL` | `postgresql://pgadmin:YOUR_PASSWORD@studysphere-postgres.postgres.database.azure.com:5432/studysphere?sslmode=require` | Your PostgreSQL connection string |
+| `DB_ADMIN_PASSWORD` | `YOUR_DB_PASSWORD` | Your database password |
+| `JWT_SECRET` | `YOUR_JWT_SECRET` | Strong random string |
+| `GEMINI_API_KEY` | `YOUR_GEMINI_KEY` | From Google AI Studio |
 | `GEMINI_MODEL` | `gemini-2.0-flash-exp` | Gemini model name |
-| `AZURE_MODERATOR_KEY` | `EDw9...` | From Azure Portal |
-| `AZURE_MODERATOR_ENDPOINT` | `https://studyspheremoderator.cognitiveservices.azure.com/` | From Azure Portal |
+| `AZURE_MODERATOR_KEY` | `YOUR_MODERATOR_KEY` | From Azure Portal |
+| `AZURE_MODERATOR_ENDPOINT` | `https://YOUR_ENDPOINT.cognitiveservices.azure.com/` | From Azure Portal |
 
 ### Quick Command to Get Values:
 
