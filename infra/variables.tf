@@ -15,6 +15,7 @@ variable "location" {
   type        = string
   default     = "Korea Central"
 }
+# Trigger Terraform workflow test
 
 variable "resource_group_name" {
   description = "Name of the resource group"
