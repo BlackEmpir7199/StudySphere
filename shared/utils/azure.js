@@ -135,7 +135,7 @@ async function moderateContent(text) {
 
     // Severity levels: 0 (safe), 2 (low), 4 (medium), 6 (high)
     // Flag if ANY category has severity >= 2 (very strict for educational platform)
-    const SEVERITY_THRESHOLD = 2; // Flag if severity is 2 or higher
+    const SEVERITY_THRESHOLD = 1; // Flag if severity is 2 or higher
     
     const flaggedCategories = categories.filter(c => c.severity >= SEVERITY_THRESHOLD);
     const hasBlockedTerms = blocklistsMatch.length > 0;

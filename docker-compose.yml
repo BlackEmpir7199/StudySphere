@@ -34,8 +34,6 @@ services:
       - DATABASE_URL=postgresql://studysphere:studysphere123@postgres:5432/studysphere?schema=public
       - JWT_SECRET=local-dev-secret
       - PORT=5001
-      - AZURE_MODERATOR_KEY=8IYc9wk7wzxtYJwvzG136tRd9oINsoNKVOgkxa8xExfMUCnubV2zJQQJ99BJACNns7RXJ3w3AAAHACOGf7tC
-      - AZURE_MODERATOR_ENDPOINT=https://studyspheremoderator.cognitiveservices.azure.com
     ports:
       - "5001:5001"
     depends_on:
@@ -52,8 +50,6 @@ services:
       - DATABASE_URL=postgresql://studysphere:studysphere123@postgres:5432/studysphere?schema=public
       - JWT_SECRET=local-dev-secret
       - PORT=5002
-      - AZURE_MODERATOR_KEY=8IYc9wk7wzxtYJwvzG136tRd9oINsoNKVOgkxa8xExfMUCnubV2zJQQJ99BJACNns7RXJ3w3AAAHACOGf7tC
-      - AZURE_MODERATOR_ENDPOINT=https://studyspheremoderator.cognitiveservices.azure.com
     ports:
       - "5002:5002"
     depends_on:
@@ -70,8 +66,6 @@ services:
       - DATABASE_URL=postgresql://studysphere:studysphere123@postgres:5432/studysphere?schema=public
       - JWT_SECRET=local-dev-secret
       - PORT=5003
-      - AZURE_MODERATOR_KEY=8IYc9wk7wzxtYJwvzG136tRd9oINsoNKVOgkxa8xExfMUCnubV2zJQQJ99BJACNns7RXJ3w3AAAHACOGf7tC
-      - AZURE_MODERATOR_ENDPOINT=https://studyspheremoderator.cognitiveservices.azure.com
     ports:
       - "5003:5003"
     depends_on:
@@ -89,8 +83,6 @@ services:
       - JWT_SECRET=local-dev-secret
       - REDIS_URL=redis://redis:6379
       - PORT=5004
-      - AZURE_MODERATOR_KEY=8IYc9wk7wzxtYJwvzG136tRd9oINsoNKVOgkxa8xExfMUCnubV2zJQQJ99BJACNns7RXJ3w3AAAHACOGf7tC
-      - AZURE_MODERATOR_ENDPOINT=https://studyspheremoderator.cognitiveservices.azure.com
     ports:
       - "5004:5004"
     depends_on:
