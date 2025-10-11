@@ -12,11 +12,12 @@
     "@azure/cognitiveservices-contentmoderator": "^5.0.0",
     "@azure/ms-rest-azure-js": "^2.1.0",
     "@google/generative-ai": "^0.24.1",
-    "@prisma/client": "^6.17.0",
+    "@prisma/client": "^6.17.1",
+    "axios": "^1.6.0",
     "jsonwebtoken": "^9.0.2",
     "openai": "^4.20.1"
   },
   "devDependencies": {
-    "prisma": "^6.17.0"
+    "prisma": "^6.17.1"
   }
 }
