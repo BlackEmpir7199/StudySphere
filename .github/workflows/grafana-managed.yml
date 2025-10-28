@@ -1,0 +1,102 @@
+name: Provision Azure Managed Grafana
+
+on:
+  workflow_dispatch:
+    inputs:
+      resource_group:
+        description: 'Resource group name'
+        required: false
+        default: 'rg-studysphere-obs'
+      location:
+        description: 'Azure region'
+        required: false
+        default: 'eastus'
+      grafana_name:
+        description: 'Grafana instance name'
+        required: false
+        default: 'graf-studysphere'
+      admin_upn:
+        description: 'Admin UPN/email to grant Grafana Admin (optional)'
+        required: false
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  provision:
+    name: Provision AMG
+    runs-on: ubuntu-latest
+    env:
+      RG: ${{ inputs.resource_group }}
+      LOC: ${{ inputs.location }}
+      GRAF: ${{ inputs.grafana_name }}
+      ADMIN_UPN: ${{ inputs.admin_upn }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Ensure amg extension is installed
+        run: |
+          az extension add -n amg --upgrade
+
+      - name: Create resource group (idempotent)
+        run: |
+          az group create -n "$RG" -l "$LOC" --output none
+
+      - name: Create or update Managed Grafana
+        id: create
+        shell: bash
+        run: |
+          set -e
+          if az grafana show -g "$RG" -n "$GRAF" >/dev/null 2>&1; then
+            echo "Grafana exists; updating settings"
+            az grafana update -g "$RG" -n "$GRAF" --enable-aad-auth true --sku Standard --public-network-access Enabled --only-show-errors --output none
+          else
+            az grafana create \
+              --name "$GRAF" \
+              --resource-group "$RG" \
+              --location "$LOC" \
+              --sku Standard \
+              --public-network-access Enabled \
+              --only-show-errors --output none
+            # Enable AAD auth
+            az grafana update -g "$RG" -n "$GRAF" --enable-aad-auth true --only-show-errors --output none
+          fi
+          ENDPOINT=$(az grafana show -g "$RG" -n "$GRAF" --query "properties.endpoint" -o tsv)
+          ID=$(az grafana show -g "$RG" -n "$GRAF" --query id -o tsv)
+          echo "endpoint=$ENDPOINT" >> $GITHUB_OUTPUT
+          echo "id=$ID" >> $GITHUB_OUTPUT
+
+      - name: Assign Grafana Admin (optional)
+        if: env.ADMIN_UPN != ''
+        run: |
+          az role assignment create \
+            --assignee "$ADMIN_UPN" \
+            --role "Grafana Admin" \
+            --scope "${{ steps.create.outputs.id }}" \
+            --only-show-errors --output none || echo "Role may already be assigned"
+
+      - name: Print endpoint
+        run: |
+          echo "Grafana URL: ${{ steps.create.outputs.endpoint }}"
+
+      - name: Add job summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = process.env.ENDPOINT || '${{ steps.create.outputs.endpoint }}';
+            core.summary.addHeading('Azure Managed Grafana')
+              .addRaw(`Resource Group: ${process.env.RG}`)
+              .addRaw(`\nName: ${process.env.GRAF}`)
+              .addRaw(`\nRegion: ${process.env.LOC}`)
+              .addBreak()
+              .addLink('Open Grafana', url)
+              .write();
+          result-encoding: string
