@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   security-events: write
+  actions: read
 
 jobs:
   analyze:
@@ -26,6 +27,7 @@ jobs:
         with:
           languages: javascript
           queries: security-and-quality
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: Setup Node
         uses: actions/setup-node@v4

@@ -1,0 +1,21 @@
+name: StudySphere CodeQL
+
+queries:
+  - uses: security-and-quality
+
+paths:
+  - .
+
+paths-ignore:
+  - node_modules
+  - '**/node_modules/**'
+  - '**/dist/**'
+  - '**/build/**'
+  - '**/.next/**'
+  - '**/.vite/**'
+  - '**/coverage/**'
+  - '**/*.min.js'
+  - 'infra/**'
+  - 'helm/**'
+  - 'k8s/**'
+  - 'docs/**'
