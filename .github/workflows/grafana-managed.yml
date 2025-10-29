@@ -66,17 +66,16 @@ jobs:
           set -e
           if az grafana show -g "$RG" -n "$GRAF" >/dev/null 2>&1; then
             echo "Grafana exists; updating settings"
-            az grafana update -g "$RG" -n "$GRAF" --enable-aad-auth true --sku Standard --public-network-access Enabled --only-show-errors --output none
+            az grafana update -g "$RG" -n "$GRAF" --sku-tier Standard --public-network-access Enabled --only-show-errors --output none
           else
             az grafana create \
               --name "$GRAF" \
               --resource-group "$RG" \
               --location "$LOC" \
-              --sku Standard \
+              --sku-tier Standard \
               --public-network-access Enabled \
               --only-show-errors --output none
-            # Enable AAD auth
-            az grafana update -g "$RG" -n "$GRAF" --enable-aad-auth true --only-show-errors --output none
+            echo "Grafana created successfully"
           fi
           ENDPOINT=$(az grafana show -g "$RG" -n "$GRAF" --query "properties.endpoint" -o tsv)
           ID=$(az grafana show -g "$RG" -n "$GRAF" --query id -o tsv)
