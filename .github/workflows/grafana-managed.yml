@@ -10,7 +10,7 @@ on:
       location:
         description: 'Azure region'
         required: false
-        default: 'Korea Central'
+        default: 'South India'
       grafana_name:
         description: 'Grafana instance name'
         required: false
@@ -48,7 +48,12 @@ jobs:
 
       - name: Create resource group (idempotent)
         run: |
-          az group create -n "$RG" -l "$LOC" --output none
+          if az group show -n "$RG" >/dev/null 2>&1; then
+            echo "Resource group $RG already exists, using it"
+          else
+            echo "Creating resource group $RG in $LOC"
+            az group create -n "$RG" -l "$LOC" --output none
+          fi
 
       - name: Create or update Managed Grafana
         id: create
