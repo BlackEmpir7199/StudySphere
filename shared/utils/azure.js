@@ -1,6 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const ContentModeratorClient = require('@azure/cognitiveservices-contentmoderator').ContentModeratorClient;
-const msRest = require('@azure/ms-rest-azure-js');
+const axios = require('axios');
 
 // Google Gemini Configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -21,19 +20,15 @@ if (GEMINI_API_KEY) {
   console.warn('⚠️  Gemini API key not configured, using mock responses');
 }
 
-// Initialize Content Moderator client
-let moderatorClient = null;
+// Check Azure Content Moderator configuration
+let azureModeratorEnabled = false;
 if (AZURE_MODERATOR_KEY && AZURE_MODERATOR_ENDPOINT) {
-  try {
-    const credentials = new msRest.ApiKeyCredentials({
-      inHeader: { 'Ocp-Apim-Subscription-Key': AZURE_MODERATOR_KEY }
-    });
-    moderatorClient = new ContentModeratorClient(credentials, AZURE_MODERATOR_ENDPOINT);
-    console.log('✅ Azure Content Moderator initialized');
-  } catch (error) {
-    console.warn('⚠️  Content Moderator initialization failed:', error.message);
-    console.warn('Content moderation will use fallback method');
-  }
+  azureModeratorEnabled = true;
+  console.log('✅ Azure Content Moderator configured');
+} else {
+  console.warn('⚠️  Azure Content Moderator not configured, using enhanced fallback moderation');
+  if (!AZURE_MODERATOR_KEY) console.warn('   Missing: AZURE_MODERATOR_KEY');
+  if (!AZURE_MODERATOR_ENDPOINT) console.warn('   Missing: AZURE_MODERATOR_ENDPOINT');
 }
 
 /**
@@ -93,55 +88,110 @@ Do not include any other text, just the JSON array.`;
 }
 
 /**
- * Moderate text content using Azure Content Moderator or fallback
+ * Moderate text content using Azure Content Moderator REST API or fallback
  * @param {string} text - Text to moderate
  * @returns {Promise<Object>} Moderation result with isClean and reason
  */
 async function moderateContent(text) {
-  // Use simple moderation for now (Content Moderator SDK has compatibility issues)
-  return simpleModerate(text);
-  
-  /* Azure Content Moderator integration (disabled for now)
-  if (!moderatorClient) {
+  // Try Azure Content Moderator first, fallback to simple moderation
+  if (!azureModeratorEnabled) {
     return simpleModerate(text);
   }
 
   try {
-    const screenResult = await moderatorClient.textModeration.screenText(
-      'text/plain',
-      Buffer.from(text),
-      {
-        language: 'eng',
-        autocorrect: true,
-        pII: true,
-        classify: true,
-      }
-    );
+    // Call Azure Content Safety API (NEW API)
+    const url = `${AZURE_MODERATOR_ENDPOINT}/contentsafety/text:analyze?api-version=2024-09-15-preview`;
+    
+    const response = await axios.post(url, {
+      text: text,
+      categories: ['Hate', 'SelfHarm', 'Sexual', 'Violence'],
+      outputType: 'FourSeverityLevels',
+      haltOnBlocklistHit: false
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Ocp-Apim-Subscription-Key': AZURE_MODERATOR_KEY,
+      },
+      timeout: 5000, // 5 second timeout
+    });
 
-    const isClean = !(
-      (screenResult.terms && screenResult.terms.length > 0) ||
-      (screenResult.classification && (
-        screenResult.classification.category1?.score > 0.7 ||
-        screenResult.classification.category2?.score > 0.7 ||
-        screenResult.classification.category3?.score > 0.7
-      ))
-    );
+    const result = response.data;
 
+    // NEW API Response Format:
+    // categoriesAnalysis: [{category: 'Hate', severity: 0-6}]
+    // blocklistsMatch: [{blocklistName, blocklistItemId, blocklistItemText}]
+    
+    const categories = result.categoriesAnalysis || [];
+    const blocklistsMatch = result.blocklistsMatch || [];
+    
+    // Log moderation results for debugging
+    console.log('🛡️  Azure Content Safety Results:', {
+      hate: categories.find(c => c.category === 'Hate')?.severity || 0,
+      selfHarm: categories.find(c => c.category === 'SelfHarm')?.severity || 0,
+      sexual: categories.find(c => c.category === 'Sexual')?.severity || 0,
+      violence: categories.find(c => c.category === 'Violence')?.severity || 0,
+      blockedTerms: blocklistsMatch.length,
+    });
+
+    // Severity levels: 0 (safe), 2 (low), 4 (medium), 6 (high)
+    // Flag if ANY category has severity >= 2 (very strict for educational platform)
+    const SEVERITY_THRESHOLD = 1; // Flag if severity is 2 or higher
+    
+    const flaggedCategories = categories.filter(c => c.severity >= SEVERITY_THRESHOLD);
+    const hasBlockedTerms = blocklistsMatch.length > 0;
+    
+    // Content is flagged if any condition is met
+    const isClean = flaggedCategories.length === 0 && !hasBlockedTerms;
+
+    // Determine specific reason for moderation
     let reason = null;
+    let detectedIssues = [];
+    
     if (!isClean) {
-      if (screenResult.terms && screenResult.terms.length > 0) {
-        reason = 'Contains offensive language';
-      } else if (screenResult.classification) {
-        reason = 'Contains inappropriate content';
+      if (hasBlockedTerms) {
+        const blockedWords = blocklistsMatch.map(b => b.blocklistItemText).slice(0, 3);
+        reason = `Contains blocked terms: ${blockedWords.join(', ')}`;
+        detectedIssues.push('Blocked terms');
+      }
+      
+      if (flaggedCategories.length > 0) {
+        const worst = flaggedCategories.sort((a, b) => b.severity - a.severity)[0];
+        if (!reason) {
+          if (worst.category === 'Hate') {
+            reason = `Contains hate speech (severity: ${worst.severity}/6)`;
+          } else if (worst.category === 'Sexual') {
+            reason = `Contains sexual content (severity: ${worst.severity}/6)`;
+          } else if (worst.category === 'Violence') {
+            reason = `Contains violent content (severity: ${worst.severity}/6)`;
+          } else if (worst.category === 'SelfHarm') {
+            reason = `Contains self-harm content (severity: ${worst.severity}/6)`;
+          }
+        }
+        detectedIssues = flaggedCategories.map(c => `${c.category}:${c.severity}`);
       }
     }
 
-    return { isClean, reason };
+    return { 
+      isClean, 
+      reason,
+      details: {
+        categories: {
+          hate: categories.find(c => c.category === 'Hate')?.severity || 0,
+          selfHarm: categories.find(c => c.category === 'SelfHarm')?.severity || 0,
+          sexual: categories.find(c => c.category === 'Sexual')?.severity || 0,
+          violence: categories.find(c => c.category === 'Violence')?.severity || 0,
+        },
+        detectedIssues,
+        blockedTermsCount: blocklistsMatch.length,
+        source: 'azure-content-safety',
+      }
+    };
   } catch (error) {
-    console.error('Error moderating content:', error.message);
+    console.error('❌ Azure Content Moderator error:', error.response?.data || error.message);
+    console.warn('⚠️  Falling back to enhanced simple moderation');
+    // Fallback to simple moderation if Azure fails
     return simpleModerate(text);
   }
-  */
 }
 
 /**
@@ -150,17 +200,76 @@ async function moderateContent(text) {
  * @returns {Object} Moderation result
  */
 function simpleModerate(text) {
-  const offensiveWords = [
-    'spam', 'scam', 'hate', 'violence', 'abuse',
-    // Add more words as needed for demo purposes
-  ];
+  // Educational platform content filters
+  const offensivePatterns = {
+    spam: ['spam', 'scam', 'phishing', 'buy now', 'click here', 'limited time'],
+    harassment: ['hate', 'abuse', 'bully', 'harass', 'threaten', 'attack'],
+    violence: ['violence', 'kill', 'hurt', 'harm', 'weapon', 'attack'],
+    explicit: ['sex', 'porn', 'explicit', 'nsfw'],
+    drugs: ['drug', 'weed', 'cocaine', 'marijuana'],
+    profanity: ['fuck', 'shit', 'damn', 'bitch', 'ass', 'hell'],
+  };
 
   const lowerText = text.toLowerCase();
-  const hasOffensive = offensiveWords.some(word => lowerText.includes(word));
+  let detectedCategory = null;
+  
+  // Check each category
+  for (const [category, words] of Object.entries(offensivePatterns)) {
+    for (const word of words) {
+      // Use word boundaries to avoid false positives
+      const regex = new RegExp(`\\b${word}\\b`, 'i');
+      if (regex.test(lowerText)) {
+        detectedCategory = category;
+        break;
+      }
+    }
+    if (detectedCategory) break;
+  }
+
+  // Check for excessive caps (potential spam/shouting)
+  const capsRatio = (text.match(/[A-Z]/g) || []).length / text.length;
+  const isExcessiveCaps = text.length > 10 && capsRatio > 0.7;
+
+  // Check for repeated characters (spam pattern)
+  const hasRepeatedChars = /(.)\1{4,}/.test(text);
+
+  // Check for suspicious URLs (basic check)
+  // Allow whitelisted domains like Google Meet, Zoom, Drive, GitHub, etc.
+  const urlRegex = /http[s]?:\/\/([^\s\/]+)/gi;
+  const urls = text.match(urlRegex) || [];
+  const whitelist = ['meet.google.com', 'zoom.us', 'drive.google.com', 'github.com', 'stackoverflow.com', 'docs.google.com'];
+  const hasSuspiciousUrl = urls.some(url => {
+    const domain = url.toLowerCase().replace(/https?:\/\//, '');
+    return !whitelist.some(allowed => domain.includes(allowed));
+  });
+
+  const hasIssue = detectedCategory || isExcessiveCaps || hasRepeatedChars || hasSuspiciousUrl;
+
+  let reason = null;
+  if (hasIssue) {
+    if (detectedCategory === 'spam') reason = 'Contains spam or promotional content';
+    else if (detectedCategory === 'harassment') reason = 'Contains harassment or threatening language';
+    else if (detectedCategory === 'violence') reason = 'Contains violent content';
+    else if (detectedCategory === 'explicit') reason = 'Contains explicit content';
+    else if (detectedCategory === 'drugs') reason = 'Contains drug-related content';
+    else if (detectedCategory === 'profanity') reason = 'Contains profanity';
+    else if (isExcessiveCaps) reason = 'Excessive use of capital letters';
+    else if (hasRepeatedChars) reason = 'Contains spam patterns';
+    else if (hasSuspiciousUrl) reason = 'Contains suspicious link';
+  }
+
+  console.log(`🔍 Simple Moderation: ${hasIssue ? '❌ FLAGGED' : '✅ CLEAN'} - ${reason || 'No issues'}`);
 
   return {
-    isClean: !hasOffensive,
-    reason: hasOffensive ? 'Contains potentially offensive content' : null,
+    isClean: !hasIssue,
+    reason,
+    details: {
+      detectedCategory,
+      isExcessiveCaps,
+      hasRepeatedChars,
+      hasSuspiciousUrl,
+      source: 'fallback',
+    }
   };
 }
 
