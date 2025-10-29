@@ -6,15 +6,15 @@ on:
       resource_group:
         description: 'Resource group name'
         required: false
-        default: 'rg-studysphere-obs'
+        default: 'studysphere-rg'
       location:
         description: 'Azure region'
         required: false
-        default: 'eastus'
+        default: 'Korea Central'
       grafana_name:
         description: 'Grafana instance name'
         required: false
-        default: 'graf-studysphere'
+        default: 'studysphere-grafana'
       admin_upn:
         description: 'Admin UPN/email to grant Grafana Admin (optional)'
         required: false
