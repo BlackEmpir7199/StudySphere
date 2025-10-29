@@ -50,6 +50,9 @@ jobs:
         run: |
           if az group show -n "$RG" >/dev/null 2>&1; then
             echo "Resource group $RG already exists, using it"
+            # Get the actual location of the existing resource group
+            ACTUAL_LOC=$(az group show -n "$RG" --query location -o tsv)
+            echo "Resource group is located in: $ACTUAL_LOC"
           else
             echo "Creating resource group $RG in $LOC"
             az group create -n "$RG" -l "$LOC" --output none
